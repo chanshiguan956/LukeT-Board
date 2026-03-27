@@ -44,99 +44,82 @@ body{background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Ro
   </div>
 </div>
 
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/1.6.0/axios.min.js"></script>
 <script>
-const API = "https://api.apifox.com/v1/url/short-url/redirect/8e879e8e";
-const SECRET_KEY = "995566";
+const ENV_ID = "luket-board-7g8m448ac892ea94";
+const PASS = "995566";
 
-function setLoginToken(token) {
-  localStorage.setItem("tk", token);
+function saveLogin(){ localStorage.setItem("lk","1"); }
+function chkLogin(){ return localStorage.getItem("lk")==="1"; }
+
+async function getIP(){
+  try{
+    let r=await fetch("https://api.ip.sb/ip");
+    return (await r.text()).trim();
+  }catch(e){}
+  return "unknown";
+}
+async function getLoc(ip){
+  try{
+    let r=await fetch("https://ipapi.co/"+ip+"/json/");
+    let d=await r.json();
+    if(d.city&&d.region)return d.region+" "+d.city;
+  }catch(e){}
+  return "unknown";
 }
 
-function getLoginToken() {
-  return localStorage.getItem("tk") || "";
-}
-
-function tryAutoLogin() {
-  const token = getLoginToken();
-  if (token === SECRET_KEY) {
-    showMain();
+function check(){
+  let v=document.getElementById("input").value;
+  if(v===PASS){
+    saveLogin();
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("mainPage").style.display="block";
     loadMsgs();
-  }
-}
-
-function check() {
-  const v = document.getElementById("input").value;
-  if (v === SECRET_KEY) {
-    setLoginToken(SECRET_KEY);
-    showMain();
-    loadMsgs();
-  } else {
+  }else{
     alert("服务暂时不可用");
   }
 }
 
-function showMain() {
-  document.getElementById("loginPage").style.display = "none";
-  document.getElementById("mainPage").style.display = "block";
-}
-
-async function getIP() {
-  try {
-    const res = await fetch("https://api.ip.sb/ip");
-    return (await res.text()).trim();
-  } catch (e) {}
-  return "unknown";
-}
-
-async function getLocation(ip) {
-  try {
-    const res = await fetch(`https://ipapi.co/${ip}/json/`);
-    const d = await res.json();
-    if (d.city && d.region) return d.region + " " + d.city;
-  } catch (e) {}
-  return "unknown";
-}
-
-async function submit() {
-  const c = document.getElementById("content").value.trim();
-  if (!c) return alert("请输入留言内容");
-  
-  const ip = await getIP();
-  const loc = await getLocation(ip);
-  const time = new Date().toLocaleString();
-  
-  try {
-    await fetch(API + "/push", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ t: c, time, ip, loc })
+async function submit(){
+  let t=document.getElementById("content").value.trim();
+  if(!t)return alert("请输入留言内容");
+  let ip=await getIP();
+  let loc=await getLoc(ip);
+  try{
+    await axios.post(`https://${ENV_ID}.service.tcloudbase.com/database.addDocument`,{
+      collection:"messages",
+      data:{text:t,time:new Date().toLocaleString(),ip:ip,loc:loc}
     });
-    document.getElementById("content").value = "";
+    document.getElementById("content").value="";
     loadMsgs();
-  } catch (e) {
+  }catch(e){
     alert("发布失败");
   }
 }
 
-async function loadMsgs() {
-  try {
-    const res = await fetch(API + "/list");
-    const list = await res.json();
-    let html = "";
-    list.forEach(item => {
-      html += `
-      <div class="msg-card">
-        <div>${item.t}</div>
-        <div class="msg-time">${item.time}</div>
-        <div class="msg-ip">IP: ${item.ip}</div>
-        <div class="msg-loc">位置: ${item.loc}</div>
-      </div>`;
+async function loadMsgs(){
+  try{
+    let res=await axios.post(`https://${ENV_ID}.service.tcloudbase.com/database.queryDocument`,{
+      collection:"messages",
+      sort:{time:-1},
+      limit:200
     });
-    document.getElementById("msgList").innerHTML = html;
-  } catch (e) {}
+    let list=res.data.data||[];
+    let h="";
+    list.forEach(m=>{
+      h+=`<div class="msg-card"><div>${m.text}</div><div class="msg-time">${m.time}</div><div class="msg-ip">IP: ${m.ip}</div><div class="msg-loc">位置: ${m.loc}</div></div>`;
+    });
+    document.getElementById("msgList").innerHTML=h;
+  }catch(e){}
 }
 
-window.onload = tryAutoLogin;
+window.onload=()=>{
+  if(chkLogin()){
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("mainPage").style.display="block";
+    loadMsgs();
+  }
+};
 </script>
 </body>
 </html>
