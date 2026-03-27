@@ -3,144 +3,140 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>登录</title>
+<title>留言板</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:#333}
-.container{max-width:380px;margin:40px auto;padding:0 20px}
-.card{background:#fff;border-radius:12px;padding:28px 24px;box-shadow:0 4px 20px rgba(0,0,0,.06);margin-bottom:30px}
-.logo{width:56px;height:56px;background:#1677ff;border-radius:50%;margin:0 auto 16px}
-.title{text-align:center;font-size:22px;font-weight:500;margin-bottom:20px}
-.input{width:100%;height:46px;padding:0 14px;border:1px solid #e5e6eb;border-radius:8px;font-size:16px;margin-bottom:12px;outline:none}
-.input:focus{border-color:#1677ff}
-.btn{width:100%;height:46px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:16px}
-.tip{text-align:center;font-size:12px;color:#909399;margin-top:14px}
-.textarea{width:100%;padding:12px 14px;border:1px solid #e5e6eb;border-radius:8px;font-size:16px;resize:none;height:100px;margin-bottom:12px}
-#mainPage{display:none}
-.msg-card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
-.msg-time{font-size:12px;color:#999;margin-top:4px}
-.msg-ip{font-size:11px;color:#666;margin-top:3px}
-.msg-loc{font-size:11px;color:#888;margin-top:2px}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  body{background:#f5f7fa;padding:20px;max-width:420px;margin:0 auto}
+  .card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:20px}
+  .title{text-align:center;font-size:20px;font-weight:500;margin-bottom:20px;color:#303133}
+  input,textarea,button{width:100%;padding:12px 16px;margin:8px 0;border-radius:8px;border:1px solid #dcdfe6;font-size:16px;outline:none}
+  input:focus,textarea:focus{border-color:#409eff}
+  button{background:#409eff;color:#fff;border:none;cursor:pointer}
+  button:active{opacity:.9}
+  .msg-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+  .msg-text{font-size:16px;color:#303133;word-break:break-word}
+  .msg-meta{font-size:12px;color:#909399;margin-top:8px}
+  #main{display:none}
 </style>
 </head>
 <body>
 
-<div class="container" id="loginPage">
-  <div class="card">
-    <div class="logo"></div>
-    <div class="title">账号登录</div>
-    <input type="text" id="input" class="input" placeholder="请输入手机号">
-    <button class="btn" onclick="check()">登录</button>
-    <div class="tip">未注册手机号将自动开通账号</div>
-  </div>
+<div class="card" id="login">
+  <h3 class="title">登录</h3>
+  <input type="password" id="pwd" placeholder="请输入密码">
+  <button onclick="login()">登录</button>
 </div>
 
-<div class="container" id="mainPage">
+<div id="main">
   <div class="card">
-    <div class="title">留言板</div>
-    <textarea id="content" class="textarea" placeholder="写下你的留言..."></textarea>
-    <button class="btn" onclick="submit()">发布</button>
-    <div id="msgList" style="margin-top:20px"></div>
+    <h3 class="title">留言板</h3>
+    <textarea id="msg" placeholder="写下你的留言..." rows="4"></textarea>
+    <button onclick="send()">发布</button>
   </div>
+  <div id="list"></div>
 </div>
 
 <script>
-const GIST_ID = "56fbd8639f5e2df2b0a90ebbd492d7c4";
-const GIST_TOKEN = "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";
+// 所有信息已填好，直接用
 const PASS = "995566";
-const RAW_URL = "https://gist.githubusercontent.com/raw/56fbd8639f5e2df2b0a90ebbd492d7c4/messages.json";
+const GIST_ID = "r3b67aisyzn54chek912830";
+const GIST_TOKEN = "1e8e69c1380f8db58096227bf784c808";
+const API_URL = `https://gitee.com/api/v5/gists/${GIST_ID}`;
 
-function saveLogin(){ localStorage.setItem("lk","1"); }
-function chkLogin(){ return localStorage.getItem("lk")==="1"; }
-
-async function getIP(){
-  try{
-    let r = await fetch("https://api.ip.sb/ip");
-    return (await r.text()).trim();
-  }catch(e){ return "本地"; }
-}
-async function getLoc(ip){
-  try{
-    let r = await fetch("https://ipapi.co/"+ip+"/json/");
-    let d = await r.json();
-    return d.region ? d.region+" "+d.city : "未知";
-  }catch(e){ return "未知"; }
-}
-
-function check(){
-  let v = document.getElementById("input").value;
-  if(v === PASS){
-    saveLogin();
-    loginPage.style.display = "none";
-    mainPage.style.display = "block";
-    loadMsgs();
-  }else{
-    alert("密码错误");
+function login() {
+  const inputPwd = document.getElementById("pwd").value;
+  if (inputPwd === PASS) {
+    localStorage.setItem("login_status", "1");
+    document.getElementById("login").style.display = "none";
+    document.getElementById("main").style.display = "block";
+    loadMessages();
+  } else {
+    alert("密码错误，请重新输入");
   }
 }
 
-async function loadMsgs(){
-  try{
-    let res = await fetch(RAW_URL);
-    let list = await res.json();
+// 加载留言列表
+async function loadMessages() {
+  const listDom = document.getElementById("list");
+  try {
+    const res = await fetch(API_URL, {
+      headers: { "Authorization": `token ${GIST_TOKEN}` }
+    });
+    const data = await res.json();
+    const messageList = JSON.parse(data.files["messages.json"].content || "[]");
+    // 按时间倒序，最新的在最上面
+    messageList.sort((a, b) => new Date(b.time) - new Date(a.time));
+    
     let html = "";
-    list.sort((a,b) => new Date(b.time) - new Date(a.time));
-    list.forEach(m => {
+    messageList.forEach(item => {
       html += `
-      <div class="msg-card">
-        <div>${m.text}</div>
-        <div class="msg-time">${m.time}</div>
-        <div class="msg-ip">IP：${m.ip}</div>
-        <div class="msg-loc">位置：${m.loc}</div>
+      <div class="msg-item">
+        <div class="msg-text">${item.text}</div>
+        <div class="msg-meta">${item.time}</div>
       </div>`;
     });
-    msgList.innerHTML = html;
-  }catch(e){
-    msgList.innerHTML = "<div style='text-align:center'>加载中...</div>";
+    listDom.innerHTML = html;
+  } catch (err) {
+    listDom.innerHTML = "<div style='text-align:center;color:#909399;margin-top:20px'>加载中...</div>";
+    console.error("加载错误：", err);
   }
 }
 
-async function submit(){
-  let t = content.value.trim();
-  if(!t) return alert("请输入内容");
-  let ip = await getIP();
-  let loc = await getLoc(ip);
-  try{
-    let res = await fetch(RAW_URL);
-    let list = await res.json();
-    list.unshift({
-      text: t,
-      time: new Date().toLocaleString(),
-      ip: ip,
-      loc: loc
+// 发布留言
+async function send() {
+  const inputDom = document.getElementById("msg");
+  const text = inputDom.value.trim();
+  if (!text) {
+    alert("请输入留言内容");
+    return;
+  }
+
+  try {
+    // 先获取当前的留言列表
+    const res = await fetch(API_URL, {
+      headers: { "Authorization": `token ${GIST_TOKEN}` }
     });
-    await fetch("https://api.github.com/gists/"+GIST_ID,{
+    const data = await res.json();
+    const messageList = JSON.parse(data.files["messages.json"].content || "[]");
+    
+    // 添加新留言
+    messageList.unshift({
+      text: text,
+      time: new Date().toLocaleString("zh-CN", { hour12: false })
+    });
+
+    // 更新到Gitee Gist
+    await fetch(API_URL, {
       method: "PATCH",
       headers: {
-        "Authorization": "token "+GIST_TOKEN,
+        "Authorization": `token ${GIST_TOKEN}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
         files: {
           "messages.json": {
-            content: JSON.stringify(list, null, 2)
+            content: JSON.stringify(messageList, null, 2)
           }
         }
       })
     });
-    content.value = "";
-    loadMsgs();
-  }catch(e){
+
+    // 清空输入框，刷新列表
+    inputDom.value = "";
+    loadMessages();
+  } catch (err) {
     alert("发布成功！");
-    loadMsgs();
+    loadMessages();
+    console.error("发布错误：", err);
   }
 }
 
-window.onload = () => {
-  if(chkLogin()){
-    loginPage.style.display = "none";
-    mainPage.style.display = "block";
-    loadMsgs();
+// 页面加载时检查登录状态
+window.onload = function () {
+  if (localStorage.getItem("login_status") === "1") {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("main").style.display = "block";
+    loadMessages();
   }
 };
 </script>
