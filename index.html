@@ -86,24 +86,19 @@ async function submit(){
   let ip=await getIP();
   let loc=await getLoc(ip);
   try{
-    await axios.post(`https://${ENV_ID}.service.tcloudbase.com/database.addDocument`,{
-      collection:"messages",
-      data:{text:t,time:new Date().toLocaleString(),ip:ip,loc:loc}
+    await axios.post(`https://${ENV_ID}.service.tcloudbase.com/msgPush`,{
+      t, time:new Date().toLocaleString(), ip, loc
     });
     document.getElementById("content").value="";
     loadMsgs();
   }catch(e){
-    alert("发布失败");
+    alert("发布失败："+e.message);
   }
 }
 
 async function loadMsgs(){
   try{
-    let res=await axios.post(`https://${ENV_ID}.service.tcloudbase.com/database.queryDocument`,{
-      collection:"messages",
-      sort:{time:-1},
-      limit:200
-    });
+    let res=await axios.post(`https://${ENV_ID}.service.tcloudbase.com/msgList`);
     let list=res.data.data||[];
     let h="";
     list.forEach(m=>{
