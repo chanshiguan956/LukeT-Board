@@ -46,7 +46,8 @@ const API_URL = `https://gitee.com/api/v5/gists/${GIST_ID}`;
 function login() {
   const inputPwd = document.getElementById("pwd").value;
   if (inputPwd === PASS) {
-    localStorage.setItem("login_status", "1");
+    // 改成 sessionStorage，关闭网页就自动清除
+    sessionStorage.setItem("login_status", "1");
     document.getElementById("login").style.display = "none";
     document.getElementById("main").style.display = "block";
     loadMessages();
@@ -133,7 +134,8 @@ async function send() {
 
 // 页面加载时检查登录状态
 window.onload = function () {
-  if (localStorage.getItem("login_status") === "1") {
+  // 改成 sessionStorage
+  if (sessionStorage.getItem("login_status") === "1") {
     document.getElementById("login").style.display = "none";
     document.getElementById("main").style.display = "block";
     loadMessages();
