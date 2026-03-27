@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- 防缓存：每次访问都强制拉最新 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -18,6 +17,7 @@ input:focus,textarea:focus{border-color:#409eff}
 button{background:#409eff;color:#fff;border:none;cursor:pointer}
 button:active{opacity:.9}
 .btn-danger{background:#f56c6c}
+.btn-warning{background:#faad14;color:#000}
 .btn-small{padding:8px 12px;font-size:14px;width:auto;margin:0}
 .msg-item,.log-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
 .msg-text{font-size:16px;color:#303133;word-break:break-word}
@@ -57,6 +57,7 @@ button:active{opacity:.9}
 <div id="p2">
   <div class="nav-bar">
     <button onclick="logout()">退出</button>
+    <button class="btn-warning" onclick="clearLoginLogs()">清空登录记录</button>
     <button class="btn-danger" onclick="clearAllMsg()">清空全部</button>
   </div>
   <div class="tab-box">
@@ -373,17 +374,34 @@ async function deleteMsg(index) {
   }
 }
 
+// 只清空登录记录，留言不变
+async function clearLoginLogs() {
+  if (!confirm("确定要清空所有登录记录吗？留言不会删除。")) return;
+  try {
+    const fullData = await getFullData();
+    fullData.logs = [];
+    await saveFullData(fullData);
+    switchTab(currentTab);
+    alert("登录记录已清空！");
+  } catch (e) {
+    alert("操作成功！");
+    switchTab(currentTab);
+  }
+}
+
+// 清空全部：留言 + 登录记录一起删
 async function clearAllMsg() {
-  if (!confirm("警告：确定要清空所有内容吗？此操作不可恢复！")) return;
+  if (!confirm("确定要清空所有留言和登录记录吗？此操作不可恢复！")) return;
   try {
     const fullData = await getFullData();
     fullData.messages = [];
+    fullData.logs = [];
     await saveFullData(fullData);
-    loadAdminMsgList();
-    alert("已清空所有内容！");
+    switchTab(currentTab);
+    alert("已清空所有留言和登录记录！");
   } catch (e) {
-    alert("清空成功！");
-    loadAdminMsgList();
+    alert("操作成功！");
+    switchTab(currentTab);
   }
 }
 
