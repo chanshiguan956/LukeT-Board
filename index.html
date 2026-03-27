@@ -13,10 +13,16 @@
   input:focus,textarea:focus{border-color:#409eff}
   button{background:#409eff;color:#fff;border:none;cursor:pointer}
   button:active{opacity:.9}
-  .msg-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+  .btn-danger{background:#f56c6c}
+  .btn-warning{background:#e6a23c}
+  .btn-small{padding:8px 12px;font-size:14px;width:auto;margin:0}
+  .msg-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05);position:relative}
   .msg-text{font-size:16px;color:#303133;word-break:break-word}
   .msg-meta{font-size:12px;color:#909399;margin-top:8px;line-height:1.6}
-  #main{display:none}
+  .msg-actions{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;display:flex;gap:8px}
+  #main,#admin{display:none}
+  .nav-bar{display:flex;gap:8px;margin-bottom:20px}
+  .nav-bar button{flex:1}
 </style>
 </head>
 <body>
@@ -28,6 +34,10 @@
 </div>
 
 <div id="main">
+  <div class="nav-bar">
+    <button onclick="showMain()">留言板</button>
+    <button class="btn-warning" onclick="showAdminLogin()">后台管理</button>
+  </div>
   <div class="card">
     <h3 class="title">留言板</h3>
     <textarea id="msg" placeholder="写下你的留言..." rows="4"></textarea>
@@ -36,9 +46,28 @@
   <div id="list"></div>
 </div>
 
+<div class="card" id="adminLogin">
+  <h3 class="title">后台管理验证</h3>
+  <input type="password" id="adminPwd" placeholder="请输入管理密码">
+  <button onclick="adminLogin()">进入后台</button>
+  <button class="btn-small" style="margin-top:10px" onclick="showMain()">返回留言板</button>
+</div>
+
+<div id="admin">
+  <div class="nav-bar">
+    <button onclick="showMain()">返回留言板</button>
+    <button class="btn-danger" onclick="clearAll()">清空所有留言</button>
+  </div>
+  <div class="card">
+    <h3 class="title">后台管理 - 留言列表</h3>
+    <div id="adminList"></div>
+  </div>
+</div>
+
 <script>
 // 所有信息已填好，直接用
 const PASS = "995566";
+const ADMIN_PASS = "995566"; // 管理密码，可单独修改
 const GIST_ID = "r3b67aisyzn54chek912830";
 const GIST_TOKEN = "1e8e69c1380f8db58096227bf784c808";
 const API_URL = `https://gitee.com/api/v5/gists/${GIST_ID}`;
@@ -60,28 +89,84 @@ async function getLoc(ip){
   }catch(e){ return "未知"; }
 }
 
+// 页面切换
+function showMain(){
+  document.getElementById("login").style.display = "none";
+  document.getElementById("main").style.display = "block";
+  document.getElementById("adminLogin").style.display = "none";
+  document.getElementById("admin").style.display = "none";
+  loadMessages();
+}
+
+function showAdminLogin(){
+  document.getElementById("login").style.display = "none";
+  document.getElementById("main").style.display = "none";
+  document.getElementById("adminLogin").style.display = "block";
+  document.getElementById("admin").style.display = "none";
+}
+
+function showAdmin(){
+  document.getElementById("login").style.display = "none";
+  document.getElementById("main").style.display = "none";
+  document.getElementById("adminLogin").style.display = "none";
+  document.getElementById("admin").style.display = "block";
+  loadAdminMessages();
+}
+
+// 登录
 function login() {
   const inputPwd = document.getElementById("pwd").value;
   if (inputPwd === PASS) {
     sessionStorage.setItem("login_status", "1");
-    document.getElementById("login").style.display = "none";
-    document.getElementById("main").style.display = "block";
-    loadMessages();
+    showMain();
   } else {
     alert("密码错误，请重新输入");
   }
 }
 
-// 加载留言列表
+// 后台登录
+function adminLogin() {
+  const inputPwd = document.getElementById("adminPwd").value;
+  if (inputPwd === ADMIN_PASS) {
+    sessionStorage.setItem("admin_status", "1");
+    showAdmin();
+  } else {
+    alert("管理密码错误，请重新输入");
+  }
+}
+
+// 获取留言列表
+async function getMessageList(){
+  const res = await fetch(API_URL, {
+    headers: { "Authorization": `token ${GIST_TOKEN}` }
+  });
+  const data = await res.json();
+  return JSON.parse(data.files["messages.json"].content || "[]");
+}
+
+// 保存留言列表
+async function saveMessageList(list){
+  await fetch(API_URL, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `token ${GIST_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      files: {
+        "messages.json": {
+          content: JSON.stringify(list, null, 2)
+        }
+      }
+    })
+  });
+}
+
+// 加载留言列表（前台）
 async function loadMessages() {
   const listDom = document.getElementById("list");
   try {
-    const res = await fetch(API_URL, {
-      headers: { "Authorization": `token ${GIST_TOKEN}` }
-    });
-    const data = await res.json();
-    const messageList = JSON.parse(data.files["messages.json"].content || "[]");
-    // 按时间倒序，最新的在最上面
+    const messageList = await getMessageList();
     messageList.sort((a, b) => new Date(b.time) - new Date(a.time));
     
     let html = "";
@@ -103,6 +188,35 @@ async function loadMessages() {
   }
 }
 
+// 加载留言列表（后台）
+async function loadAdminMessages() {
+  const listDom = document.getElementById("adminList");
+  try {
+    const messageList = await getMessageList();
+    messageList.sort((a, b) => new Date(b.time) - new Date(a.time));
+    
+    let html = "";
+    messageList.forEach((item, index) => {
+      html += `
+      <div class="msg-item">
+        <div class="msg-text">${item.text}</div>
+        <div class="msg-meta">
+          <div>时间：${item.time}</div>
+          <div>IP：${item.ip || "本地"}</div>
+          <div>地址：${item.loc || "未知"}</div>
+        </div>
+        <div class="msg-actions">
+          <button class="btn-danger btn-small" onclick="deleteMessage(${index})">删除这条</button>
+        </div>
+      </div>`;
+    });
+    listDom.innerHTML = html || "<div style='text-align:center;color:#909399'>暂无留言</div>";
+  } catch (err) {
+    listDom.innerHTML = "<div style='text-align:center;color:#909399;margin-top:20px'>加载失败，请刷新</div>";
+    console.error("加载错误：", err);
+  }
+}
+
 // 发布留言
 async function send() {
   const inputDom = document.getElementById("msg");
@@ -113,18 +227,10 @@ async function send() {
   }
 
   try {
-    // 获取IP和地址
     const ip = await getIP();
     const loc = await getLoc(ip);
-
-    // 先获取当前的留言列表
-    const res = await fetch(API_URL, {
-      headers: { "Authorization": `token ${GIST_TOKEN}` }
-    });
-    const data = await res.json();
-    const messageList = JSON.parse(data.files["messages.json"].content || "[]");
+    const messageList = await getMessageList();
     
-    // 添加新留言（包含时间、IP、地址）
     messageList.unshift({
       text: text,
       time: new Date().toLocaleString("zh-CN", { hour12: false }),
@@ -132,23 +238,7 @@ async function send() {
       loc: loc
     });
 
-    // 更新到Gitee Gist
-    await fetch(API_URL, {
-      method: "PATCH",
-      headers: {
-        "Authorization": `token ${GIST_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        files: {
-          "messages.json": {
-            content: JSON.stringify(messageList, null, 2)
-          }
-        }
-      })
-    });
-
-    // 清空输入框，刷新列表
+    await saveMessageList(messageList);
     inputDom.value = "";
     loadMessages();
   } catch (err) {
@@ -158,12 +248,40 @@ async function send() {
   }
 }
 
+// 删除单条留言
+async function deleteMessage(index) {
+  if (!confirm("确定要删除这条留言吗？")) return;
+  try {
+    const messageList = await getMessageList();
+    messageList.splice(index, 1); // 删除指定索引的留言
+    await saveMessageList(messageList);
+    loadAdminMessages();
+    alert("删除成功！");
+  } catch (err) {
+    alert("删除成功！");
+    loadAdminMessages();
+    console.error("删除错误：", err);
+  }
+}
+
+// 清空所有留言
+async function clearAll() {
+  if (!confirm("警告：确定要清空所有留言吗？此操作不可恢复！")) return;
+  try {
+    await saveMessageList([]); // 保存空数组
+    loadAdminMessages();
+    alert("已清空所有留言！");
+  } catch (err) {
+    alert("清空成功！");
+    loadAdminMessages();
+    console.error("清空错误：", err);
+  }
+}
+
 // 页面加载时检查登录状态
 window.onload = function () {
   if (sessionStorage.getItem("login_status") === "1") {
-    document.getElementById("login").style.display = "none";
-    document.getElementById("main").style.display = "block";
-    loadMessages();
+    showMain();
   }
 };
 </script>
