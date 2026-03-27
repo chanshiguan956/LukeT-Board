@@ -5,319 +5,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>账号注册</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
-body{background:#f5f7fa;padding:20px;max-width:420px;margin:0 auto}
-.card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:20px}
-.title{text-align:center;font-size:20px;font-weight:500;margin-bottom:20px;color:#303133}
-input,textarea,button{width:100%;padding:12px 16px;margin:8px 0;border-radius:8px;border:1px solid #dcdfe6;font-size:16px;outline:none}
-input:focus,textarea:focus{border-color:#409eff}
-button{background:#409eff;color:#fff;border:none;cursor:pointer}
-button:active{opacity:.9}
-.btn-danger{background:#f56c6c}
-.btn-small{padding:8px 12px;font-size:14px;width:auto;margin:0}
-.msg-item,.log-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
-.msg-text{font-size:16px;color:#303133;word-break:break-word}
-.msg-meta,.log-meta{font-size:12px;color:#909399;margin-top:8px;line-height:1.6}
-.msg-actions{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;display:flex;gap:8px}
-#p1,#p2{display:none}
-.nav-bar{display:flex;gap:8px;margin-bottom:20px}
-.nav-bar button{flex:1}
-.tab-box{display:flex;gap:8px;margin-bottom:20px}
-.tab-box button{flex:1}
-.tab-on{background:#409eff}
-.tab-off{background:#909399}
-.tip{text-align:center;font-size:12px;color:#909399;margin-top:14px}
-.tag-red{color:#f56c6c;font-weight:500}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+  body{background:#f5f7fa;padding:20px;max-width:420px;margin:0 auto}
+  .card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:20px}
+  .title{text-align:center;font-size:20px;font-weight:500;margin-bottom:20px;color:#303133}
+  input,button{width:100%;padding:12px 16px;margin:8px 0;border-radius:8px;border:1px solid #dcdfe6;font-size:16px;outline:none}
+  button{background:#409eff;color:#fff;border:none;cursor:pointer}
+  #p1,#p2{display:none}
 </style>
 </head>
 <body>
 
+<!-- 注册登录页 -->
 <div class="card" id="p0">
-  <div class="logo" style="width:56px;height:56px;background:#409eff;border-radius:50%;margin:0 auto 16px"></div>
   <h3 class="title">账号注册</h3>
   <input type="text" id="i1" placeholder="请输入手机号">
   <input type="password" id="i2" placeholder="请设置登录密码">
-  <button onclick="f0()">立即注册</button>
-  <div class="tip">未注册手机号将自动开通账号</div>
+  <button onclick="login()">立即注册</button>
 </div>
 
+<!-- 普通用户留言页 -->
 <div id="p1">
-  <div class="card">
-    <h3 class="title">留言板</h3>
-    <textarea id="i3" placeholder="写下你的留言..." rows="4"></textarea>
-    <button onclick="f1()">发布</button>
-  </div>
-  <div id="l1"></div>
+  <h3>留言板</h3>
+  <button onclick="logout()">退出</button>
 </div>
 
+<!-- 管理员后台页 -->
 <div id="p2">
-  <div class="nav-bar">
-    <button onclick="f2()">退出</button>
-    <button class="btn-danger" onclick="f3()">清空全部</button>
-  </div>
-  <div class="tab-box">
-    <button id="t1" class="tab-on" onclick="f4('t1')">记录列表</button>
-    <button id="t2" class="tab-off" onclick="f4('t2')">内容管理</button>
-  </div>
-  <div class="card">
-    <h3 class="title" id="t-t">记录列表</h3>
-    <div id="l2"></div>
-  </div>
+  <h3>后台管理</h3>
+  <button onclick="logout()">退出</button>
 </div>
 
 <script>
-// 核心配置（已混淆加密，无暴露）
-const _c = ['995566','995566995566','r3b67aisyzn54chek912830','1e8e69c1380f8db58096227bf784c808'];
-const k1 = _c[0], k2 = _c[1], g1 = _c[2], g2 = _c[3];
-const u1 = 'https://gitee.com/api/v5/gists/' + g1;
-const t = 3000;
-let timer = null, lock = false, hash = '', tab = 't1';
+// 你的密码
+const NORMAL_PWD = "995566";
+const ADMIN_PWD = "995566995566";
 
-// 工具函数
-async function a1(){
-  try{let r=await fetch('https://api.ip.sb/ip',{timeout:3000});return (await r.text()).trim();}catch(e){return '未知IP';}
-}
-async function a2(ip){
-  try{let r=await fetch('https://ipapi.co/'+ip+'/json/',{timeout:3000});let d=await r.json();return d.region?d.region+' '+d.city:'未知地址';}catch(e){return '未知地址';}
-}
-
-// 页面切换
-function s1(){
-  document.getElementById('p0').style.display='none';
-  document.getElementById('p1').style.display='block';
-  document.getElementById('p2').style.display='none';
-  r1(); b1();
-}
-function s2(){
-  document.getElementById('p0').style.display='none';
-  document.getElementById('p1').style.display='none';
-  document.getElementById('p2').style.display='block';
-  f4(tab); b1();
-}
-
-// 核心功能函数（全部挂载到window，保证可调用）
-window.f2 = function(){
-  b2();
-  sessionStorage.removeItem('s1');
-  sessionStorage.removeItem('s2');
-  document.getElementById('p0').style.display='block';
-  document.getElementById('p1').style.display='none';
-  document.getElementById('p2').style.display='none';
-}
-
-window.f4 = function(id){
-  tab = id;
-  document.getElementById('t1').className = id==='t1'?'tab-on':'tab-off';
-  document.getElementById('t2').className = id==='t2'?'tab-on':'tab-off';
-  document.getElementById('t-t').innerText = id==='t1'?'记录列表':'内容管理';
-  id==='t1'?r2():r3();
-}
-
-// 实时同步
-function b1(){b2();timer=setInterval(b3,t);}
-function b2(){if(timer){clearInterval(timer);timer=null;}}
-async function b3(){
-  if(lock)return;lock=true;
-  try{
-    const d=await d1();
-    const h=JSON.stringify(d);
-    if(h!==hash){
-      hash=h;
-      document.getElementById('p1').style.display==='block'?r1():document.getElementById('p2').style.display==='block'&&f4(tab);
-    }
-  }catch(e){}
-  finally{lock=false;}
-}
-
-// 页面可见性优化
-document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='hidden'){b2();}
-  else{b3();(sessionStorage.getItem('s1')==='1'||sessionStorage.getItem('s2')==='1')&&b1();}
-});
-window.addEventListener('beforeunload',()=>{b2();});
-
-// 数据读写
-async function d1(){
-  try{
-    const res=await fetch(u1,{headers:{'Authorization':'token '+g2}});
-    const g=await res.json();
-    const c=g.files['messages.json'].content||'[]';
-    let d=JSON.parse(c);
-    if(Array.isArray(d))d={logs:[],list:d};
-    if(!d.logs)d.logs=[];
-    if(!d.list)d.list=[];
-    return d;
-  }catch(e){return {logs:[],list:[]};}
-}
-async function d2(d){
-  try{
-    await fetch(u1,{
-      method:'PATCH',
-      headers:{'Authorization':'token '+g2,'Content-Type':'application/json'},
-      body:JSON.stringify({files:{'messages.json':{content:JSON.stringify(d,null,2)}}})
-    });
-    hash=JSON.stringify(d);
-    return true;
-  }catch(e){return false;}
-}
-
-// 记录日志
-async function w1(phone,type){
-  try{
-    const ip=await a1();
-    const loc=await a2(ip);
-    const d=await d1();
-    d.logs.unshift({phone:phone||'未填写',ip:ip,loc:loc,type:type,time:new Date().toLocaleString('zh-CN',{hour12:false})});
-    await d2(d);
-  }catch(e){}
-}
-
-// 注册/登录核心逻辑
-window.f0 = async function(){
-  const phone=document.getElementById('i1').value.trim();
-  const pwd=document.getElementById('i2').value;
-  if(pwd===k2){
-    await w1(phone,'管理员');
-    sessionStorage.setItem('s2','1');
-    s2();
-  }else if(pwd===k1){
-    await w1(phone,'普通用户');
-    sessionStorage.setItem('s1','1');
-    s1();
-  }else{
-    await w1(phone,'失败');
-    alert('注册失败，请检查密码格式是否正确');
+// 登录函数
+function login(){
+  const pwd = document.getElementById("i2").value;
+  // 管理员密码进后台
+  if(pwd === ADMIN_PWD){
+    document.getElementById("p0").style.display = "none";
+    document.getElementById("p2").style.display = "block";
+    alert("管理员登录成功");
+  }
+  // 普通密码进留言板
+  else if(pwd === NORMAL_PWD){
+    document.getElementById("p0").style.display = "none";
+    document.getElementById("p1").style.display = "block";
+    alert("登录成功");
+  }
+  // 密码错误
+  else{
+    alert("注册失败，请检查密码格式");
   }
 }
 
-// 渲染函数
-async function r1(){
-  const dom=document.getElementById('l1');
-  try{
-    const d=await d1();
-    const arr=d.list;
-    arr.sort((a,b)=>new Date(b.time)-new Date(a.time));
-    let h='';
-    arr.forEach(item=>{
-      h+=`
-      <div class="msg-item">
-        <div class="msg-text">${item.text}</div>
-        <div class="msg-meta">
-          <div>时间：${item.time}</div>
-          <div>IP：${item.ip||'未知IP'}</div>
-          <div>地址：${item.loc||'未知地址'}</div>
-        </div>
-      </div>`;
-    });
-    dom.innerHTML=h||'<div style="text-align:center;color:#909399;margin-top:20px">暂无内容</div>';
-  }catch(e){
-    dom.innerHTML='<div style="text-align:center;color:#909399;margin-top:20px">加载失败，请刷新页面</div>';
-  }
+// 退出函数
+function logout(){
+  document.getElementById("p0").style.display = "block";
+  document.getElementById("p1").style.display = "none";
+  document.getElementById("p2").style.display = "none";
 }
-async function r2(){
-  const dom=document.getElementById('l2');
-  try{
-    const d=await d1();
-    const arr=d.logs;
-    let h='';
-    arr.forEach(item=>{
-      const isFail=item.type==='失败';
-      h+=`
-      <div class="log-item">
-        <div class="log-meta">
-          <div>手机号：${item.phone}</div>
-          <div>状态：${isFail?'<span class="tag-red">注册失败</span>':item.type}</div>
-          <div>IP：${item.ip}</div>
-          <div>地址：${item.loc}</div>
-          <div>时间：${item.time}</div>
-        </div>
-      </div>`;
-    });
-    dom.innerHTML=h||'<div style="text-align:center;color:#909399;margin-top:20px">暂无记录</div>';
-  }catch(e){
-    dom.innerHTML='<div style="text-align:center;color:#909399;margin-top:20px">加载失败，请刷新</div>';
-  }
-}
-async function r3(){
-  const dom=document.getElementById('l2');
-  try{
-    const d=await d1();
-    const arr=d.list;
-    arr.sort((a,b)=>new Date(b.time)-new Date(a.time));
-    let h='';
-    arr.forEach((item,index)=>{
-      h+=`
-      <div class="msg-item">
-        <div class="msg-text">${item.text}</div>
-        <div class="msg-meta">
-          <div>时间：${item.time}</div>
-          <div>IP：${item.ip||'未知IP'}</div>
-          <div>地址：${item.loc||'未知地址'}</div>
-        </div>
-        <div class="msg-actions">
-          <button class="btn-danger btn-small" onclick="f5(${index})">删除</button>
-        </div>
-      </div>`;
-    });
-    dom.innerHTML=h||'<div style="text-align:center;color:#909399;margin-top:20px">暂无内容</div>';
-  }catch(e){
-    dom.innerHTML='<div style="text-align:center;color:#909399;margin-top:20px">加载失败，请刷新</div>';
-  }
-}
-
-// 留言操作
-window.f1 = async function(){
-  const dom=document.getElementById('i3');
-  const text=dom.value.trim();
-  if(!text){alert('请输入内容');return;}
-  try{
-    const ip=await a1();
-    const loc=await a2(ip);
-    const d=await d1();
-    d.list.unshift({text:text,time:new Date().toLocaleString('zh-CN',{hour12:false}),ip:ip,loc:loc});
-    await d2(d);
-    dom.value='';
-    r1();
-  }catch(e){
-    alert('发布成功！');
-    r1();
-  }
-}
-window.f5 = async function(index){
-  if(!confirm('确定要删除这条内容吗？'))return;
-  try{
-    const d=await d1();
-    d.list.splice(index,1);
-    await d2(d);
-    r3();
-    alert('删除成功！');
-  }catch(e){
-    alert('删除成功！');
-    r3();
-  }
-}
-window.f3 = async function(){
-  if(!confirm('警告：确定要清空所有内容吗？此操作不可恢复！'))return;
-  try{
-    const d=await d1();
-    d.list=[];
-    await d2(d);
-    r3();
-    alert('已清空所有内容！');
-  }catch(e){
-    alert('清空成功！');
-    r3();
-  }
-}
-
-// 页面加载检查
-window.onload=function(){
-  if(sessionStorage.getItem('s2')==='1')s2();
-  else if(sessionStorage.getItem('s1')==='1')s1();
-}
-
-// 反调试保护
-setInterval(function(){debugger;},100);
 </script>
 </body>
 </html>
