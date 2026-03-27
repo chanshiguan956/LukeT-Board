@@ -11,11 +11,11 @@ body{background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Ro
 .card{background:#fff;border-radius:12px;padding:28px 24px;box-shadow:0 4px 20px rgba(0,0,0,.06);margin-bottom:30px}
 .logo{width:56px;height:56px;background:#1677ff;border-radius:50%;margin:0 auto 16px}
 .title{text-align:center;font-size:22px;font-weight:500;margin-bottom:20px}
-.input{width:100%;height:46px;padding:0 14px;border:1px solid #e56eb;border-radius:8px;font-size:16px;margin-bottom:12px;outline:none}
+.input{width:100%;height:46px;padding:0 14px;border:1px solid #e5e6eb;border-radius:8px;font-size:16px;margin-bottom:12px;outline:none}
 .input:focus{border-color:#1677ff}
 .btn{width:100%;height:46px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:16px}
 .tip{text-align:center;font-size:12px;color:#909399;margin-top:14px}
-.textarea{width:100%;padding:12px 14px;border:1px solid #e56eb;border-radius:8px;font-size:16px;resize:none;height:100px;margin-bottom:12px}
+.textarea{width:100%;padding:12px 14px;border:1px solid #e5e6eb;border-radius:8px;font-size:16px;resize:none;height:100px;margin-bottom:12px}
 #mainPage{display:none}
 .msg-card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
 .msg-time{font-size:12px;color:#999;margin-top:4px}
@@ -45,82 +45,98 @@ body{background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Ro
 </div>
 
 <script>
-function saveLogin(){
-  localStorage.setItem("isLogin","true");
+const API = "https://api.apifox.com/v1/url/short-url/redirect/8e879e8e";
+const SECRET_KEY = "995566";
+
+function setLoginToken(token) {
+  localStorage.setItem("tk", token);
 }
-function isLoggedIn(){
-  return localStorage.getItem("isLogin") === "true";
+
+function getLoginToken() {
+  return localStorage.getItem("tk") || "";
 }
-function autoLogin(){
-  if(isLoggedIn()){
-    document.getElementById("loginPage").style.display = "none";
-    document.getElementById("mainPage").style.display = "block";
+
+function tryAutoLogin() {
+  const token = getLoginToken();
+  if (token === SECRET_KEY) {
+    showMain();
     loadMsgs();
   }
 }
 
-async function getIP(){
-  try{
-    let res = await fetch("https://api.ip.sb/ip");
-    return await res.text();
-  }catch(e){
-    return "unknown";
-  }
-}
-
-async function getLocation(ip){
-  try{
-    let res = await fetch(`https://ipapi.co/${ip}/json/`);
-    let d = await res.json();
-    if(d.city && d.region) return d.region+" "+d.city;
-  }catch(e){}
-  return "unknown";
-}
-
-function check(){
-  var v = document.getElementById("input").value;
-  if(v === "995566"){
-    saveLogin();
-    document.getElementById("loginPage").style.display = "none";
-    document.getElementById("mainPage").style.display = "block";
+function check() {
+  const v = document.getElementById("input").value;
+  if (v === SECRET_KEY) {
+    setLoginToken(SECRET_KEY);
+    showMain();
     loadMsgs();
-  }else{
+  } else {
     alert("服务暂时不可用");
   }
 }
 
-async function submit(){
-  var c = document.getElementById("content").value.trim();
-  if(!c) return alert("请输入留言内容");
-  let ip = await getIP();
-  let loc = await getLocation(ip);
-  let time = new Date().toLocaleString();
-  let item = {text:c, time, ip, loc};
-  
-  let list = JSON.parse(localStorage.getItem("msgs") || "[]");
-  list.unshift(item);
-  localStorage.setItem("msgs",JSON.stringify(list));
-  
-  document.getElementById("content").value = "";
-  loadMsgs();
+function showMain() {
+  document.getElementById("loginPage").style.display = "none";
+  document.getElementById("mainPage").style.display = "block";
 }
 
-function loadMsgs(){
-  let list = JSON.parse(localStorage.getItem("msgs") || "[]");
-  let html = "";
-  list.forEach(item=>{
-    html += `
-    <div class="msg-card">
-      <div>${item.text}</div>
-      <div class="msg-time">${item.time}</div>
-      <div class="msg-ip">IP: ${item.ip}</div>
-      <div class="msg-loc">位置: ${item.loc}</div>
-    </div>`;
-  });
-  document.getElementById("msgList").innerHTML = html;
+async function getIP() {
+  try {
+    const res = await fetch("https://api.ip.sb/ip");
+    return (await res.text()).trim();
+  } catch (e) {}
+  return "unknown";
 }
 
-window.onload = autoLogin;
+async function getLocation(ip) {
+  try {
+    const res = await fetch(`https://ipapi.co/${ip}/json/`);
+    const d = await res.json();
+    if (d.city && d.region) return d.region + " " + d.city;
+  } catch (e) {}
+  return "unknown";
+}
+
+async function submit() {
+  const c = document.getElementById("content").value.trim();
+  if (!c) return alert("请输入留言内容");
+  
+  const ip = await getIP();
+  const loc = await getLocation(ip);
+  const time = new Date().toLocaleString();
+  
+  try {
+    await fetch(API + "/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ t: c, time, ip, loc })
+    });
+    document.getElementById("content").value = "";
+    loadMsgs();
+  } catch (e) {
+    alert("发布失败");
+  }
+}
+
+async function loadMsgs() {
+  try {
+    const res = await fetch(API + "/list");
+    const list = await res.json();
+    let html = "";
+    list.forEach(item => {
+      html += `
+      <div class="msg-card">
+        <div>${item.t}</div>
+        <div class="msg-time">${item.time}</div>
+        <div class="msg-ip">IP: ${item.ip}</div>
+        <div class="msg-loc">位置: ${item.loc}</div>
+      </div>`;
+    });
+    document.getElementById("msgList").innerHTML = html;
+  } catch (e) {}
+}
+
+window.onload = tryAutoLogin;
 </script>
 </body>
 </html>
