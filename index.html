@@ -15,7 +15,7 @@
   button:active{opacity:.9}
   .msg-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
   .msg-text{font-size:16px;color:#303133;word-break:break-word}
-  .msg-meta{font-size:12px;color:#909399;margin-top:8px}
+  .msg-meta{font-size:12px;color:#909399;margin-top:8px;line-height:1.6}
   #main{display:none}
 </style>
 </head>
@@ -43,10 +43,26 @@ const GIST_ID = "r3b67aisyzn54chek912830";
 const GIST_TOKEN = "1e8e69c1380f8db58096227bf784c808";
 const API_URL = `https://gitee.com/api/v5/gists/${GIST_ID}`;
 
+// 获取IP
+async function getIP(){
+  try{
+    let r = await fetch("https://api.ip.sb/ip");
+    return (await r.text()).trim();
+  }catch(e){ return "本地"; }
+}
+
+// 获取地址
+async function getLoc(ip){
+  try{
+    let r = await fetch("https://ipapi.co/"+ip+"/json/");
+    let d = await r.json();
+    return d.region ? d.region+" "+d.city : "未知";
+  }catch(e){ return "未知"; }
+}
+
 function login() {
   const inputPwd = document.getElementById("pwd").value;
   if (inputPwd === PASS) {
-    // 改成 sessionStorage，关闭网页就自动清除
     sessionStorage.setItem("login_status", "1");
     document.getElementById("login").style.display = "none";
     document.getElementById("main").style.display = "block";
@@ -73,7 +89,11 @@ async function loadMessages() {
       html += `
       <div class="msg-item">
         <div class="msg-text">${item.text}</div>
-        <div class="msg-meta">${item.time}</div>
+        <div class="msg-meta">
+          <div>时间：${item.time}</div>
+          <div>IP：${item.ip || "本地"}</div>
+          <div>地址：${item.loc || "未知"}</div>
+        </div>
       </div>`;
     });
     listDom.innerHTML = html;
@@ -93,6 +113,10 @@ async function send() {
   }
 
   try {
+    // 获取IP和地址
+    const ip = await getIP();
+    const loc = await getLoc(ip);
+
     // 先获取当前的留言列表
     const res = await fetch(API_URL, {
       headers: { "Authorization": `token ${GIST_TOKEN}` }
@@ -100,10 +124,12 @@ async function send() {
     const data = await res.json();
     const messageList = JSON.parse(data.files["messages.json"].content || "[]");
     
-    // 添加新留言
+    // 添加新留言（包含时间、IP、地址）
     messageList.unshift({
       text: text,
-      time: new Date().toLocaleString("zh-CN", { hour12: false })
+      time: new Date().toLocaleString("zh-CN", { hour12: false }),
+      ip: ip,
+      loc: loc
     });
 
     // 更新到Gitee Gist
@@ -134,7 +160,6 @@ async function send() {
 
 // 页面加载时检查登录状态
 window.onload = function () {
-  // 改成 sessionStorage
   if (sessionStorage.getItem("login_status") === "1") {
     document.getElementById("login").style.display = "none";
     document.getElementById("main").style.display = "block";
