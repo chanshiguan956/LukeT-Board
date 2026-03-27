@@ -17,7 +17,6 @@ input:focus,textarea:focus{border-color:#409eff}
 button{background:#409eff;color:#fff;border:none;cursor:pointer}
 button:active{opacity:.9}
 .btn-danger{background:#f56c6c}
-.btn-warning{background:#faad14;color:#000}
 .btn-small{padding:8px 12px;font-size:14px;width:auto;margin:0}
 .msg-item,.log-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
 .msg-text{font-size:16px;color:#303133;word-break:break-word}
@@ -57,7 +56,6 @@ button:active{opacity:.9}
 <div id="p2">
   <div class="nav-bar">
     <button onclick="logout()">退出</button>
-    <button class="btn-warning" onclick="clearLoginLogs()">清空登录记录</button>
     <button class="btn-danger" onclick="clearAllMsg()">清空全部</button>
   </div>
   <div class="tab-box">
@@ -287,7 +285,7 @@ async function loadLoginLog() {
     const logList = fullData.logs;
 
     let html = "";
-    logList.forEach(item => {
+    logList.forEach((item, index) => {
       const isFail = item.type === "失败";
       html += `
       <div class="log-item">
@@ -297,6 +295,9 @@ async function loadLoginLog() {
           <div>IP：${item.ip}</div>
           <div>地址：${item.loc}</div>
           <div>时间：${item.time}</div>
+        </div>
+        <div class="msg-actions">
+          <button class="btn-danger btn-small" onclick="deleteLog(${index})">删除本条</button>
         </div>
       </div>`;
     });
@@ -361,7 +362,7 @@ async function sendMsg() {
 }
 
 async function deleteMsg(index) {
-  if (!confirm("确定要删除这条内容吗？")) return;
+  if (!confirm("确定要删除这条留言吗？")) return;
   try {
     const fullData = await getFullData();
     fullData.messages.splice(index, 1);
@@ -374,33 +375,31 @@ async function deleteMsg(index) {
   }
 }
 
-// 只清空登录记录，留言不变
-async function clearLoginLogs() {
-  if (!confirm("确定要清空所有登录记录吗？留言不会删除。")) return;
+async function deleteLog(index) {
+  if (!confirm("确定删除这条登录记录？")) return;
   try {
     const fullData = await getFullData();
-    fullData.logs = [];
+    fullData.logs.splice(index, 1);
     await saveFullData(fullData);
-    switchTab(currentTab);
-    alert("登录记录已清空！");
+    loadLoginLog();
+    alert("已删除");
   } catch (e) {
-    alert("操作成功！");
-    switchTab(currentTab);
+    alert("删除成功");
+    loadLoginLog();
   }
 }
 
-// 清空全部：留言 + 登录记录一起删
 async function clearAllMsg() {
-  if (!confirm("确定要清空所有留言和登录记录吗？此操作不可恢复！")) return;
+  if (!confirm("确定要清空所有留言和登录记录吗？不可恢复！")) return;
   try {
     const fullData = await getFullData();
     fullData.messages = [];
     fullData.logs = [];
     await saveFullData(fullData);
     switchTab(currentTab);
-    alert("已清空所有留言和登录记录！");
+    alert("已清空所有内容");
   } catch (e) {
-    alert("操作成功！");
+    alert("清空成功");
     switchTab(currentTab);
   }
 }
