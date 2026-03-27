@@ -19,6 +19,8 @@ body{background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Ro
 #mainPage{display:none}
 .msg-card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
 .msg-time{font-size:12px;color:#999;margin-top:4px}
+.msg-ip{font-size:11px;color:#666;margin-top:3px}
+.msg-loc{font-size:11px;color:#888;margin-top:2px}
 </style>
 </head>
 <body>
@@ -56,40 +58,92 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-function ip(){return fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>d.ip).catch(()=>"unknown")}
-function log(t,p){ip().then(i=>{db.collection("failed_attempts").add({phone:p,ip:i,time:new Date().toISOString()})})}
+// 获取访问者IP
+function getIP() {
+  return fetch("https://api.ipify.org?format=json")
+    .then(res => res.json())
+    .then(data => data.ip)
+    .catch(() => "unknown");
+}
 
-function check(){
-  var v=document.getElementById("input").value;
-  if(v==="995566"){
-    document.getElementById("loginPage").style.display="none";
-    document.getElementById("mainPage").style.display="block";
+// 获取IP地理位置
+function getLocation(ip) {
+  return fetch(`https://ipapi.co/${ip}/json/`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.city && data.region) {
+        return `${data.region} ${data.city}`;
+      }
+      return "未知位置";
+    })
+    .catch(() => "未知位置");
+}
+
+// 记录错误登录
+function log(phone) {
+  getIP().then(ip => {
+    getLocation(ip).then(loc => {
+      db.collection("failed_attempts").add({
+        phone, ip, loc, time: new Date().toISOString()
+      });
+    });
+  });
+}
+
+// 登录验证
+function check() {
+  var v = document.getElementById("input").value;
+  if (v === "123456") {
+    document.getElementById("loginPage").style.display = "none";
+    document.getElementById("mainPage").style.display = "block";
     loadMsgs();
-  }else{
-    log(new Date().toLocaleString(),v);
+  } else {
+    log(v);
     alert("服务暂时不可用");
   }
 }
 
-function submit(){
-  var c=document.getElementById("content").value.trim();
-  if(!c)return alert("请输入留言内容");
-  db.collection("messages").add({text:c,time:new Date().toISOString()}).then(()=>{
-    document.getElementById("content").value="";
-    loadMsgs();
+// 发布留言（自动获取IP+位置）
+function submit() {
+  var c = document.getElementById("content").value.trim();
+  if (!c) return alert("请输入留言内容");
+
+  getIP().then(ip => {
+    getLocation(ip).then(loc => {
+      db.collection("messages").add({
+        text: c,
+        time: new Date().toISOString(),
+        ip: ip,
+        location: loc
+      }).then(() => {
+        document.getElementById("content").value = "";
+        loadMsgs();
+      });
+    });
   });
 }
 
-function loadMsgs(){
-  db.collection("messages").orderBy("time","desc").limit(50).get().then(s=>{
-    let h="";
-    s.forEach(d=>{
-      let da=d.data();
-      let t=new Date(da.time).toLocaleString();
-      h+=`<div class="msg-card"><div class="msg-time">${t}</div><div>${da.text}</div></div>`;
+// 加载所有留言（显示IP+位置+时间）
+function loadMsgs() {
+  db.collection("messages")
+    .orderBy("time", "desc")
+    .limit(100)
+    .get()
+    .then(snapshot => {
+      let html = "";
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const time = new Date(d.time).toLocaleString();
+        html += `
+        <div class="msg-card">
+          <div>${d.text}</div>
+          <div class="msg-time">${time}</div>
+          <div class="msg-ip">IP: ${d.ip || "未知"}</div>
+          <div class="msg-loc">位置: ${d.location || "未知"}</div>
+        </div>`;
+      });
+      document.getElementById("msgList").innerHTML = html;
     });
-    document.getElementById("msgList").innerHTML=h;
-  });
 }
 </script>
 </body>
