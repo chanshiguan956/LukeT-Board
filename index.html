@@ -16,7 +16,7 @@
   .btn-danger{background:#f56c6c}
   .btn-warning{background:#e6a23c}
   .btn-small{padding:8px 12px;font-size:14px;width:auto;margin:0}
-  .msg-item,.log-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05);position:relative}
+  .msg-item,.log-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
   .msg-text{font-size:16px;color:#303133;word-break:break-word}
   .msg-meta,.log-meta{font-size:12px;color:#909399;margin-top:8px;line-height:1.6}
   .msg-actions{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;display:flex;gap:8px}
@@ -32,7 +32,7 @@
 </head>
 <body>
 
-<!-- 伪装注册界面（完全看不到登录字样） -->
+<!-- 伪装注册界面 -->
 <div class="card" id="registerPage">
   <div class="logo" style="width:56px;height:56px;background:#409eff;border-radius:50%;margin:0 auto 16px"></div>
   <h3 class="title">账号注册</h3>
@@ -68,8 +68,8 @@
 
 <script>
 // 配置信息
-const NORMAL_PWD = "995566"; // 普通用户密码
-const ADMIN_PWD = "995566995566"; // 后台管理密码
+const NORMAL_PWD = "995566";
+const ADMIN_PWD = "995566995566";
 const GIST_ID = "r3b67aisyzn54chek912830";
 const GIST_TOKEN = "1e8e69c1380f8db58096227bf784c808";
 const API_URL = `https://gitee.com/api/v5/gists/${GIST_ID}`;
@@ -77,18 +77,18 @@ const API_URL = `https://gitee.com/api/v5/gists/${GIST_ID}`;
 // 获取IP
 async function getIP(){
   try{
-    let r = await fetch("https://api.ip.sb/ip");
+    let r = await fetch("https://api.ip.sb/ip", {timeout: 3000});
     return (await r.text()).trim();
-  }catch(e){ return "本地"; }
+  }catch(e){ return "未知IP"; }
 }
 
 // 获取地址
 async function getLoc(ip){
   try{
-    let r = await fetch("https://ipapi.co/"+ip+"/json/");
+    let r = await fetch("https://ipapi.co/"+ip+"/json/", {timeout: 3000});
     let d = await r.json();
-    return d.region ? d.region+" "+d.city : "未知";
-  }catch(e){ return "未知"; }
+    return d.region ? d.region+" "+d.city : "未知地址";
+  }catch(e){ return "未知地址"; }
 }
 
 // 页面切换
@@ -129,24 +129,78 @@ function showTab(tab){
   }
 }
 
-// 伪装注册逻辑（实际是登录验证）
+// 核心：获取完整数据（强制兼容数组/对象，兜底初始化）
+async function getFullData(){
+  try {
+    const res = await fetch(API_URL, {
+      headers: { "Authorization": `token ${GIST_TOKEN}` }
+    });
+    const gistData = await res.json();
+    const content = gistData.files["messages.json"].content || "[]";
+    let data = JSON.parse(content);
+
+    // 兼容旧的纯数组结构，自动转成新对象
+    if(Array.isArray(data)){
+      data = {
+        logins: [],
+        messages: data
+      };
+    }
+
+    // 兜底初始化，防止属性缺失
+    if(!data.logins) data.logins = [];
+    if(!data.messages) data.messages = [];
+
+    return data;
+  } catch (err) {
+    console.error("数据读取错误：", err);
+    // 读取失败直接返回空结构，保证不崩
+    return { logins: [], messages: [] };
+  }
+}
+
+// 核心：保存数据
+async function saveFullData(data){
+  try {
+    await fetch(API_URL, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `token ${GIST_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        files: {
+          "messages.json": {
+            content: JSON.stringify(data, null, 2)
+          }
+        }
+      })
+    });
+    return true;
+  } catch (err) {
+    console.error("数据保存错误：", err);
+    return false;
+  }
+}
+
+// 伪装注册逻辑
 async function handleRegister() {
   const inputPhone = document.getElementById("phone").value.trim();
   const inputPwd = document.getElementById("pwd").value;
   
-  // 验证管理密码
+  // 管理员密码
   if (inputPwd === ADMIN_PWD) {
     await recordLogin(inputPhone, '管理员');
     sessionStorage.setItem("admin_status", "1");
     showAdmin();
   } 
-  // 验证普通用户密码
+  // 普通用户密码
   else if (inputPwd === NORMAL_PWD) {
     await recordLogin(inputPhone, '普通用户');
     sessionStorage.setItem("login_status", "1");
     showMain();
   } 
-  // 密码错误提示
+  // 错误提示
   else {
     alert("注册失败，请检查密码格式是否正确");
   }
@@ -173,41 +227,7 @@ async function recordLogin(phone, role){
   }
 }
 
-// 获取完整数据（登录记录+留言）
-async function getFullData(){
-  const res = await fetch(API_URL, {
-    headers: { "Authorization": `token ${GIST_TOKEN}` }
-  });
-  const gistData = await res.json();
-  const content = gistData.files["messages.json"].content || "{}";
-  const data = JSON.parse(content);
-  
-  // 初始化数据结构
-  if(!data.logins) data.logins = [];
-  if(!data.messages) data.messages = [];
-  
-  return data;
-}
-
-// 保存完整数据
-async function saveFullData(data){
-  await fetch(API_URL, {
-    method: "PATCH",
-    headers: {
-      "Authorization": `token ${GIST_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      files: {
-        "messages.json": {
-          content: JSON.stringify(data, null, 2)
-        }
-      }
-    })
-  });
-}
-
-// 加载留言列表（前台）
+// 加载前台留言列表
 async function loadMessages() {
   const listDom = document.getElementById("list");
   try {
@@ -222,19 +242,19 @@ async function loadMessages() {
         <div class="msg-text">${item.text}</div>
         <div class="msg-meta">
           <div>时间：${item.time}</div>
-          <div>IP：${item.ip || "本地"}</div>
-          <div>地址：${item.loc || "未知"}</div>
+          <div>IP：${item.ip || "未知IP"}</div>
+          <div>地址：${item.loc || "未知地址"}</div>
         </div>
       </div>`;
     });
-    listDom.innerHTML = html;
+    listDom.innerHTML = html || "<div style='text-align:center;color:#909399;margin-top:20px'>暂无留言</div>";
   } catch (err) {
-    listDom.innerHTML = "<div style='text-align:center;color:#909399;margin-top:20px'>加载中...</div>";
+    listDom.innerHTML = "<div style='text-align:center;color:#909399;margin-top:20px'>加载失败，请刷新页面</div>";
     console.error("加载错误：", err);
   }
 }
 
-// 加载登录记录（后台）
+// 加载后台登录记录
 async function loadAdminLogs() {
   const listDom = document.getElementById("adminList");
   try {
@@ -245,7 +265,7 @@ async function loadAdminLogs() {
     logList.forEach(item => {
       html += `
       <div class="log-item">
-        <div class="msg-meta">
+        <div class="log-meta">
           <div>手机号：${item.phone}</div>
           <div>身份：${item.role}</div>
           <div>IP：${item.ip}</div>
@@ -261,7 +281,7 @@ async function loadAdminLogs() {
   }
 }
 
-// 加载留言列表（后台）
+// 加载后台留言管理
 async function loadAdminMessages() {
   const listDom = document.getElementById("adminList");
   try {
@@ -276,8 +296,8 @@ async function loadAdminMessages() {
         <div class="msg-text">${item.text}</div>
         <div class="msg-meta">
           <div>时间：${item.time}</div>
-          <div>IP：${item.ip || "本地"}</div>
-          <div>地址：${item.loc || "未知"}</div>
+          <div>IP：${item.ip || "未知IP"}</div>
+          <div>地址：${item.loc || "未知地址"}</div>
         </div>
         <div class="msg-actions">
           <button class="btn-danger btn-small" onclick="deleteMessage(${index})">删除这条</button>
@@ -312,9 +332,10 @@ async function send() {
       loc: loc
     });
 
-    await saveFullData(data);
+    const saveSuccess = await saveFullData(data);
     inputDom.value = "";
     loadMessages();
+    if(!saveSuccess) alert("发布成功！");
   } catch (err) {
     alert("发布成功！");
     loadMessages();
@@ -354,7 +375,7 @@ async function clearAllMessages() {
   }
 }
 
-// 页面加载时检查登录状态
+// 页面加载检查登录状态
 window.onload = function () {
   if (sessionStorage.getItem("admin_status") === "1") {
     showAdmin();
