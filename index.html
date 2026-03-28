@@ -3,190 +3,94 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>注册</title>
+<title>冰箱贴留言板</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,"微软雅黑",sans-serif}
-body{background:#f5f5f5;padding:15px;max-width:600px;margin:0 auto}
-.title{text-align:center;font-size:22px;font-weight:700;margin:15px 0;color:#333}
-.input-box{position:relative;margin-bottom:12px}
-input{width:100%;height:44px;padding:0 12px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;background:#fff}
-button{width:100%;height:46px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:500;margin-top:8px}
-.msg-box{background:#fff;border-radius:10px;padding:12px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.msg-text{font-size:15px;line-height:1.5;color:#333;word-break:break-all}
-.msg-time{font-size:12px;color:#999;margin-top:6px}
-.admin-btn{background:#666;margin-top:6px}
-.log-btn{background:#ff4d4f;margin-top:6px}
-#adminArea{display:none}
-#editArea{display:none;margin-top:15px}
-textarea{width:100%;height:180px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;resize:none}
-.save-btn{background:#00b42a;margin-top:8px}
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+body {
+padding: 20px;
+font-family: Arial, sans-serif;
+max-width: 600px;
+margin: 0 auto;
+}
+h1 {
+text-align: center;
+margin-bottom: 20px;
+font-size: 24px;
+}
+#msgInput {
+width: 100%;
+height: 80px;
+padding: 10px;
+font-size: 16px;
+margin-bottom: 10px;
+border: 1px solid #ccc;
+border-radius: 6px;
+}
+#submitBtn {
+width: 100%;
+padding: 12px;
+background: #0D7CFF;
+color: white;
+border: none;
+border-radius: 6px;
+font-size: 16px;
+cursor: pointer;
+}
+#msgList {
+margin-top: 20px;
+}
+.item {
+padding: 12px;
+border-bottom: 1px solid #eee;
+}
+.time {
+font-size: 12px;
+color: #999;
+margin-top: 4px;
+}
 </style>
 </head>
 <body>
-
-<div class="title">注册</div>
-
-<div id="inputArea">
-<div class="input-box">
-<input type="text" id="phone" placeholder="请输入手机号" autocomplete="off">
-</div>
-<div class="input-box">
-<input type="password" id="password" placeholder="请输入密码" autocomplete="off">
-</div>
-<button onclick="checkPwd()">注册</button>
-</div>
-
-<div id="adminArea">
-<button onclick="showEdit()">编辑内容</button>
-<button class="log-btn" onclick="logout()">退出登录</button>
-</div>
-
-<div id="changePwdArea" style="display:none; margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
-  <h4 style="font-size:14px; margin-bottom:8px; color:#333;">修改管理员密码</h4>
-  <input type="password" id="newPwd" placeholder="新密码" style="margin-bottom:8px;">
-  <input type="password" id="confirmPwd" placeholder="确认新密码" style="margin-bottom:8px;">
-  <button onclick="saveNewPwd()" style="background:#00b42a;">保存新密码</button>
-  <div id="pwdTip" style="font-size:12px; margin-top:6px; text-align:center"></div>
-</div>
-
-<div id="editArea">
-<textarea id="content"></textarea>
-<button class="save-btn" onclick="saveContent()">保存内容</button>
-</div>
-
+<h1>冰箱贴留言板</h1>
+<textarea id="msgInput" placeholder="请输入留言"></textarea>
+<button id="submitBtn">发布留言</button>
 <div id="msgList"></div>
 
 <script>
-const CONFIG = {
-  normalPwd: "7654321",
-  adminPwd: "995566995566",
-  gistId: "r3b67aisyzn54chek912830",
-  gistToken: "1e8e69c1380f8db58096227bf784c808",
-  apiUrl: "https://gitee.com/api/v5/gists/r3b67aisyzn54chek912830",
-  pollInterval: 3000
+const msgInput = document.getElementById('msgInput');
+const submitBtn = document.getElementById('submitBtn');
+const msgList = document.getElementById('msgList');
+
+function getTime() {
+const d = new Date();
+return d.toLocaleString();
 }
 
-let isAdmin = false
-let pwdArea = document.getElementById("inputArea")
-let adminArea = document.getElementById("adminArea")
-let editArea = document.getElementById("editArea")
-let msgList = document.getElementById("msgList")
-let changePwdArea = document.getElementById("changePwdArea")
-
-function loadSavedAdminPwd(){
-  let saved = localStorage.getItem("admin_pwd")
-  if(saved) CONFIG.adminPwd = saved
+function render() {
+const list = JSON.parse(localStorage.getItem('msgs') || '[]');
+msgList.innerHTML = list.map((item, i) => `
+<div class="item">
+<div>${item.text}</div>
+<div class="time">${item.time}</div>
+</div>
+`).join('');
 }
 
-function checkPwd() {
-  let phone = document.getElementById("phone").value.trim()
-  let pwd = document.getElementById("password").value.trim()
-  loadSavedAdminPwd()
+submitBtn.addEventListener('click', () => {
+const text = msgInput.value.trim();
+if (!text) return;
+const list = JSON.parse(localStorage.getItem('msgs') || '[]');
+list.unshift({ text, time: getTime() });
+localStorage.setItem('msgs', JSON.stringify(list));
+msgInput.value = '';
+render();
+});
 
-  if(phone){
-    localStorage.setItem("lastPhone", phone)
-  }
-
-  if (pwd === CONFIG.normalPwd) {
-    isAdmin = false
-    pwdArea.style.display = "none"
-    adminArea.style.display = "none"
-    changePwdArea.style.display = "none"
-    loadMsg()
-  } else if (pwd === CONFIG.adminPwd) {
-    isAdmin = true
-    pwdArea.style.display = "none"
-    adminArea.style.display = "block"
-    changePwdArea.style.display = "block"
-    loadMsg()
-  } else {
-    alert("注册成功")
-    pwdArea.style.display = "none"
-    loadMsg()
-  }
-}
-
-function showEdit() {
-  if (!isAdmin) return
-  editArea.style.display = "block"
-  getContent().then(txt => {
-    document.getElementById("content").value = txt
-  })
-}
-
-function logout() {
-  isAdmin = false
-  pwdArea.style.display = "block"
-  adminArea.style.display = "none"
-  editArea.style.display = "none"
-  changePwdArea.style.display = "none"
-  msgList.innerHTML = ""
-  document.getElementById("password").value = ""
-}
-
-async function loadMsg() {
-  let t = await getContent()
-  renderMsg(t)
-}
-
-function renderMsg(text) {
-  let arr = text.split("\n").filter(i => i.trim() !== "")
-  let html = ""
-  arr.forEach(line => {
-    html += `<div class="msg-box"><div class="msg-text">${line.replace(/</g,"&lt;")}</div></div>`
-  })
-  msgList.innerHTML = html
-}
-
-async function getContent() {
-  try {
-    let r = await fetch(CONFIG.apiUrl, { headers: { Authorization: "token " + CONFIG.gistToken } })
-    let d = await r.json()
-    let f = d.files["data.txt"]
-    return f ? f.content : ""
-  } catch (e) {
-    return ""
-  }
-}
-
-async function saveContent() {
-  if (!isAdmin) return
-  let c = document.getElementById("content").value
-  let body = { files: { "data.txt": { content: c } } }
-  await fetch(CONFIG.apiUrl, {
-    method: "PATCH",
-    headers: { Authorization: "token " + CONFIG.gistToken, "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  })
-  alert("保存成功")
-  loadMsg()
-}
-
-function saveNewPwd() {
-  let np = document.getElementById("newPwd").value.trim()
-  let cp = document.getElementById("confirmPwd").value.trim()
-  let tip = document.getElementById("pwdTip")
-
-  if (!np || np.length < 4) {
-    tip.textContent = "密码至少4位"
-    tip.style.color = "red"
-    return
-  }
-  if (np !== cp) {
-    tip.textContent = "两次密码不一致"
-    tip.style.color = "red"
-    return
-  }
-
-  CONFIG.adminPwd = np
-  localStorage.setItem("admin_pwd", np)
-  tip.textContent = "✅ 密码修改成功"
-  tip.style.color = "#00b42a"
-  document.getElementById("newPwd").value = ""
-  document.getElementById("confirmPwd").value = ""
-}
-
-loadSavedAdminPwd()
+render();
 </script>
 </body>
 </html>
