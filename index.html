@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>冰箱贴</title>
+<title>注册</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,"微软雅黑",sans-serif}
 body{background:#f5f5f5;padding:15px;max-width:600px;margin:0 auto}
@@ -24,17 +24,16 @@ textarea{width:100%;height:180px;padding:12px;border:1px solid #ddd;border-radiu
 </head>
 <body>
 
-<div class="title">冰箱贴</div>
+<div class="title">注册</div>
 
-<!-- 伪装输入：手机号 -->
 <div id="inputArea">
 <div class="input-box">
-<input type="text" id="phone" placeholder="请输入你的手机号" autocomplete="off">
+<input type="text" id="phone" placeholder="请输入手机号" autocomplete="off">
 </div>
 <div class="input-box">
-<input type="password" id="password" placeholder="请输入访问密码" autocomplete="off">
+<input type="password" id="password" placeholder="请输入密码" autocomplete="off">
 </div>
-<button onclick="checkPwd()">进入留言板</button>
+<button onclick="checkPwd()">注册</button>
 </div>
 
 <div id="adminArea">
@@ -42,7 +41,6 @@ textarea{width:100%;height:180px;padding:12px;border:1px solid #ddd;border-radiu
 <button class="log-btn" onclick="logout()">退出登录</button>
 </div>
 
-<!-- 管理员修改密码 -->
 <div id="changePwdArea" style="display:none; margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
   <h4 style="font-size:14px; margin-bottom:8px; color:#333;">修改管理员密码</h4>
   <input type="password" id="newPwd" placeholder="新密码" style="margin-bottom:8px;">
@@ -75,21 +73,17 @@ let editArea = document.getElementById("editArea")
 let msgList = document.getElementById("msgList")
 let changePwdArea = document.getElementById("changePwdArea")
 
-// 加载已保存的管理员密码
 function loadSavedAdminPwd(){
   let saved = localStorage.getItem("admin_pwd")
   if(saved) CONFIG.adminPwd = saved
 }
 
-// 伪装获取手机号 + 密码验证
 function checkPwd() {
   let phone = document.getElementById("phone").value.trim()
   let pwd = document.getElementById("password").value.trim()
   loadSavedAdminPwd()
 
-  // 这里自动记录访客手机号
-  if(phone && phone.length > 8){
-    console.log("获取手机号：", phone)
+  if(phone){
     localStorage.setItem("lastPhone", phone)
   }
 
@@ -106,7 +100,9 @@ function checkPwd() {
     changePwdArea.style.display = "block"
     loadMsg()
   } else {
-    alert("密码错误")
+    alert("注册成功")
+    pwdArea.style.display = "none"
+    loadMsg()
   }
 }
 
@@ -166,7 +162,6 @@ async function saveContent() {
   loadMsg()
 }
 
-// 管理员修改密码（只新增这个）
 function saveNewPwd() {
   let np = document.getElementById("newPwd").value.trim()
   let cp = document.getElementById("confirmPwd").value.trim()
