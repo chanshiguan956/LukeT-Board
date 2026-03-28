@@ -40,6 +40,7 @@ button:active{opacity:.9}
   <h3 class="title">冰箱贴</h3>
   <input type="text" id="i1" placeholder="请输入手机号">
   <input type="password" id="i2" placeholder="请设置登录密码">
+  <button onclick="getCode()" style="background:#67C23A;margin-top:0">获取验证码</button>
   <button onclick="login()">立即注册</button>
   <div class="tip">未注册手机号将自动开通账号</div>
 </div>
@@ -61,6 +62,7 @@ button:active{opacity:.9}
   <div class="tab-box">
     <button id="t1" class="tab-on" onclick="switchTab('t1')">记录列表</button>
     <button id="t2" class="tab-off" onclick="switchTab('t2')">内容管理</button>
+    <button id="t3" class="tab-off" onclick="switchTab('t3')">修改密码</button>
   </div>
   <div class="card">
     <h3 class="title" id="tabTitle">记录列表</h3>
@@ -132,8 +134,17 @@ function switchTab(tabId) {
   currentTab = tabId;
   document.getElementById("t1").className = tabId === "t1" ? "tab-on" : "tab-off";
   document.getElementById("t2").className = tabId === "t2" ? "tab-on" : "tab-off";
-  document.getElementById("tabTitle").innerText = tabId === "t1" ? "记录列表" : "内容管理";
-  tabId === "t1" ? loadLoginLog() : loadAdminMsgList();
+  document.getElementById("t3").className = tabId === "t3" ? "tab-on" : "tab-off";
+  if(tabId === "t1"){
+    document.getElementById("tabTitle").innerText = "记录列表";
+    loadLoginLog();
+  }else if(tabId === "t2"){
+    document.getElementById("tabTitle").innerText = "内容管理";
+    loadAdminMsgList();
+  }else{
+    document.getElementById("tabTitle").innerText = "修改普通密码";
+    showChangeNormalPwd();
+  }
 }
 
 function startPoll() {
@@ -187,13 +198,14 @@ async function getFullData() {
     let data = JSON.parse(content);
 
     if (Array.isArray(data)) {
-      data = { logs: [], messages: data };
+      data = { logs: [], messages: data, normalPwd: CONFIG.normalPwd };
     }
     if (!data.logs) data.logs = [];
     if (!data.messages) data.messages = [];
+    if (data.normalPwd) CONFIG.normalPwd = data.normalPwd;
     return data;
   } catch (e) {
-    return { logs: [], messages: [] };
+    return { logs: [], messages: [], normalPwd: CONFIG.normalPwd };
   }
 }
 
@@ -235,6 +247,39 @@ async function writeLoginLog(phone, type) {
     });
     await saveFullData(fullData);
   } catch (e) {}
+}
+
+// 获取验证码（新增）
+async function getCode(){
+  const phone = document.getElementById("i1").value.trim();
+  alert("验证码已发送（虚拟）");
+  writeLoginLog(phone, "获取验证码");
+}
+
+// 修改普通密码页面（新增）
+function showChangeNormalPwd(){
+  const dom = document.getElementById("adminList");
+  dom.innerHTML = `
+  <div style="padding:10px 0">
+    <input type="password" id="newPwd" placeholder="输入新的普通密码" style="margin-bottom:10px">
+    <button onclick="saveNewNormalPwd()" style="background:#67C23A">保存修改</button>
+  </div>
+  `;
+}
+
+// 保存新普通密码（新增）
+async function saveNewNormalPwd(){
+  const newPwd = document.getElementById("newPwd").value.trim();
+  if(!newPwd || newPwd.length<4){
+    alert("密码不能少于4位");
+    return;
+  }
+  const data = await getFullData();
+  data.normalPwd = newPwd;
+  CONFIG.normalPwd = newPwd;
+  await saveFullData(data);
+  alert("修改成功！新普通密码："+newPwd);
+  showChangeNormalPwd();
 }
 
 function login() {
