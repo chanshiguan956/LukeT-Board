@@ -1,95 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>冰箱贴</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB",sans-serif}
 body{background:#f5f7fa;padding:20px;max-width:420px;margin:0 auto}
 .card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:20px}
 .title{text-align:center;font-size:20px;font-weight:500;margin-bottom:20px;color:#303133}
-@@ -31,10 +31,15 @@
+input,textarea,button{width:100%;padding:12px 16px;margin:8px 0;border-radius:8px;border:1px solid #dcdfe6;font-size:16px;outline:none}
+input:focus,textarea:focus{border-color:#409eff}
+button{background:#409eff;color:#fff;border:none;cursor:pointer}
+button:active{opacity:.9}
+.btn-danger{background:#f56c6c}
+.btn-small{padding:8px 12px;font-size:14px;width:auto;margin:0}
+.msg-item,.log-item{background:#fff;padding:16px;margin:12px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.msg-text{font-size:16px;color:#303133;word-break:break-word}
+.msg-meta,.log-meta{font-size:12px;color:#909399;margin-top:8px;line-height:1.6}
+.msg-actions{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;display:flex;gap:8px}
+#p1,#p2{display:none}
+.nav-bar{display:flex;gap:8px;margin-bottom:20px}
+.nav-bar button{flex:1}
+.tab-box{display:flex;gap:8px;margin-bottom:20px}
+.tab-box button{flex:1}
+.tab-on{background:#409eff}
 .tab-off{background:#909399}
 .tip{text-align:center;font-size:12px;color:#909399;margin-top:14px}
 .tag-red{color:#f56c6c;font-weight:500}
-/* 新增：页面内提示条 */
-#webNotice{position:fixed;top:0;left:0;right:0;background:#f56c6c;color:#fff;padding:8px 16px;text-align:center;font-size:14px;display:none;z-index:9999}
 </style>
 </head>
 <body>
 
-<!-- 新增：页面内提示条 -->
-<div id="webNotice">🔔 冰箱贴有新消息更新</div>
-
 <div class="card" id="p0">
   <div class="logo" style="width:56px;height:56px;background:#409eff;border-radius:50%;margin:0 auto 16px"></div>
   <h3 class="title">冰箱贴</h3>
-@@ -82,6 +87,39 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+  <input type="text" id="i1" placeholder="请输入手机号">
+  <input type="password" id="i2" placeholder="请设置登录密码">
+  <button onclick="login()">立即注册</button>
+  <div class="tip">未注册手机号将自动开通账号</div>
+</div>
+
+<div id="p1">
+  <div class="card">
+    <h3 class="title">留言板</h3>
+    <textarea id="i3" placeholder="写下你的留言..." rows="4"></textarea>
+    <button onclick="sendMsg()">发布</button>
+  </div>
+  <div id="msgList"></div>
+</div>
+
+<div id="p2">
+  <div class="nav-bar">
+    <button onclick="logout()">退出</button>
+    <button class="btn-danger" onclick="clearAllMsg()">清空全部</button>
+  </div>
+  <div class="tab-box">
+    <button id="t1" class="tab-on" onclick="switchTab('t1')">记录列表</button>
+    <button id="t2" class="tab-off" onclick="switchTab('t2')">内容管理</button>
+  </div>
+  <div class="card">
+    <h3 class="title" id="tabTitle">记录列表</h3>
+    <div id="adminList"></div>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  normalPwd: "995566",
+  adminPwd: "995566995566",
+  gistId: "r3b67aisyzn54chek912830",
+  gistToken: "1e8e69c1380f8db58096227bf784c808",
+  apiUrl: "https://gitee.com/api/v5/gists/r3b67aisyzn54chek912830",
+  pollInterval: 3000
+};
+
+let pollTimer = null;
 let requestLock = false;
 let lastDataHash = "";
 let currentTab = "t1";
-// 新增：消息计数
-let lastMsgCount = -1;
-let lastLogCount = -1;
-
-// 新增：网页通知工具
-const WebNotice = {
-  // 申请通知权限
-  async requestPermission() {
-    if (!("Notification" in window)) return false;
-    const perm = await Notification.requestPermission();
-    return perm === "granted";
-  },
-  // 发送桌面通知
-  send(title, body) {
-    if (!("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
-    const notice = new Notification(title, {
-      body: body,
-      icon: "https://gitee.com/favicon.ico"
-    });
-    notice.onclick = () => {
-      window.focus();
-      notice.close();
-    };
-  },
-  // 显示页面内提示
-  show(text) {
-    const el = document.getElementById("webNotice");
-    el.textContent = text;
-    el.style.display = "block";
-    setTimeout(() => el.style.display = "none", 5000);
-  }
-};
 
 async function getClientIP() {
   try {
-@@ -109,6 +147,7 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+    const res = await fetch("https://api.ip.sb/ip", { timeout: 2000 });
+    return (await res.text()).trim();
+  } catch (e) {
+    return "未知IP";
+  }
+}
+
+async function getClientLocation(ip) {
+  try {
+    const res = await fetch(`https://ipapi.co/${ip}/json/`, { timeout: 2000 });
+    const data = await res.json();
+    return data.region ? `${data.region} ${data.city}` : "未知地址";
+  } catch (e) {
+    return "未知地址";
+  }
+}
+
+function showUserPage() {
+  document.getElementById("p0").style.display = "none";
+  document.getElementById("p1").style.display = "block";
+  document.getElementById("p2").style.display = "none";
   sessionStorage.setItem("loginStatus", "user");
   loadMsgList();
   startPoll();
-  WebNotice.requestPermission(); // 登录后申请通知权限
 }
 
 function showAdminPage() {
-@@ -118,6 +157,7 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+  document.getElementById("p0").style.display = "none";
+  document.getElementById("p1").style.display = "none";
+  document.getElementById("p2").style.display = "block";
   sessionStorage.setItem("loginStatus", "admin");
   switchTab(currentTab);
   startPoll();
-  WebNotice.requestPermission(); // 登录后申请通知权限
 }
 
 function logout() {
-@@ -174,18 +214,18 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+  stopPoll();
+  sessionStorage.removeItem("loginStatus");
+  document.getElementById("p0").style.display = "block";
+  document.getElementById("p1").style.display = "none";
+  document.getElementById("p2").style.display = "none";
+}
+
+function switchTab(tabId) {
+  currentTab = tabId;
+  document.getElementById("t1").className = tabId === "t1" ? "tab-on" : "tab-off";
+  document.getElementById("t2").className = tabId === "t2" ? "tab-on" : "tab-off";
+  document.getElementById("tabTitle").innerText = tabId === "t1" ? "记录列表" : "内容管理";
+  tabId === "t1" ? loadLoginLog() : loadAdminMsgList();
+}
+
+function startPoll() {
+  stopPoll();
+  pollTimer = setInterval(pollData, CONFIG.pollInterval);
+}
+
+function stopPoll() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+async function pollData() {
+  if (requestLock) return;
+  requestLock = true;
+  try {
+    const fullData = await getFullData();
+    const currentHash = JSON.stringify(fullData);
+    if (currentHash !== lastDataHash) {
+      lastDataHash = currentHash;
+      const loginStatus = sessionStorage.getItem("loginStatus");
+      if (loginStatus === "user") loadMsgList();
+      if (loginStatus === "admin") switchTab(currentTab);
+    }
+  } catch (e) {}
+  finally {
+    requestLock = false;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    stopPoll();
+  } else {
+    pollData();
     sessionStorage.getItem("loginStatus") && startPoll();
   }
 });
-
 window.addEventListener("beforeunload", () => stopPoll());
 
 async function getFullData() {
   try {
     const res = await fetch(CONFIG.apiUrl, {
       headers: { "Authorization": `token ${CONFIG.gistToken}` },
-      headers: { Authorization: `token ${CONFIG.gistToken}` },
       signal: AbortSignal.timeout(3000)
     });
     const gistData = await res.json();
@@ -99,7 +189,28 @@ async function getFullData() {
     if (Array.isArray(data)) {
       data = { logs: [], messages: data };
     }
-@@ -214,7 +254,6 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+    if (!data.logs) data.logs = [];
+    if (!data.messages) data.messages = [];
+    return data;
+  } catch (e) {
+    return { logs: [], messages: [] };
+  }
+}
+
+async function saveFullData(data) {
+  try {
+    await fetch(CONFIG.apiUrl, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `token ${CONFIG.gistToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        files: {
+          "messages.json": {
+            content: JSON.stringify(data, null, 2)
+          }
+        }
       }),
       signal: AbortSignal.timeout(3000)
     });
@@ -107,7 +218,25 @@ async function getFullData() {
     return true;
   } catch (e) {
     return false;
-@@ -240,7 +279,6 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+  }
+}
+
+async function writeLoginLog(phone, type) {
+  try {
+    const ip = await getClientIP();
+    const loc = await getClientLocation(ip);
+    const fullData = await getFullData();
+    fullData.logs.unshift({
+      phone: phone || "未填写",
+      ip: ip,
+      loc: loc,
+      type: type,
+      time: new Date().toLocaleString("zh-CN", { hour12: false })
+    });
+    await saveFullData(fullData);
+  } catch (e) {}
+}
+
 function login() {
   const phone = document.getElementById("i1").value.trim();
   const inputPwd = document.getElementById("i2").value;
@@ -115,7 +244,17 @@ function login() {
   if (inputPwd === CONFIG.adminPwd) {
     showAdminPage();
     writeLoginLog(phone, "管理员");
-@@ -258,19 +296,9 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+  } else if (inputPwd === CONFIG.normalPwd) {
+    showUserPage();
+    writeLoginLog(phone, "普通用户");
+  } else {
+    alert("注册失败，请检查密码格式是否正确");
+    writeLoginLog(phone, "失败");
+  }
+}
+
+async function loadMsgList() {
+  const dom = document.getElementById("msgList");
   try {
     const fullData = await getFullData();
     const msgList = fullData.messages;
@@ -132,11 +271,15 @@ function login() {
           <div>地址：${item.loc || "未知地址"}</div>
         </div>
       </div>`;
-      html += `<div class="msg-item"><div class="msg-text">${item.text}</div><div class="msg-meta"><div>时间：${item.time}</div><div>IP：${item.ip||"未知IP"}</div><div>地址：${item.loc||"未知地址"}</div></div></div>`;
     });
     dom.innerHTML = html || "<div style='text-align:center;color:#909399;margin-top:20px'>暂无内容</div>";
   } catch (e) {
-@@ -283,23 +311,11 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+    dom.innerHTML = "<div style='text-align:center;color:#909399;margin-top:20px'>加载失败，请刷新页面</div>";
+  }
+}
+
+async function loadLoginLog() {
+  const dom = document.getElementById("adminList");
   try {
     const fullData = await getFullData();
     const logList = fullData.logs;
@@ -157,12 +300,15 @@ function login() {
           <button class="btn-danger btn-small" onclick="deleteLog(${index})">删除本条</button>
         </div>
       </div>`;
-      const statusTxt = isFail ? '<span class="tag-red">注册失败</span>' : item.type;
-      html += `<div class="log-item"><div class="log-meta"><div>手机号：${item.phone}</div><div>状态：${statusTxt}</div><div>IP：${item.ip}</div><div>地址：${item.loc}</div><div>时间：${item.time}</div></div><div class="msg-actions"><button class="btn-danger btn-small" onclick="deleteLog(${index})">删除本条</button></div></div>`;
     });
     dom.innerHTML = html || "<div style='text-align:center;color:#909399;margin-top:20px'>暂无记录</div>";
   } catch (e) {
-@@ -312,22 +328,9 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+    dom.innerHTML = "<div style='text-align:center;color:#909399;margin-top:20px'>加载失败，请刷新</div>";
+  }
+}
+
+async function loadAdminMsgList() {
+  const dom = document.getElementById("adminList");
   try {
     const fullData = await getFullData();
     const msgList = fullData.messages;
@@ -182,52 +328,87 @@ function login() {
           <button class="btn-danger btn-small" onclick="deleteMsg(${index})">删除</button>
         </div>
       </div>`;
-      html += `<div class="msg-item"><div class="msg-text">${item.text}</div><div class="msg-meta"><div>时间：${item.time}</div><div>IP：${item.ip||"未知IP"}</div><div>地址：${item.loc||"未知地址"}</div></div><div class="msg-actions"><button class="btn-danger btn-small" onclick="deleteMsg(${index})">删除</button></div></div>`;
     });
     dom.innerHTML = html || "<div style='text-align:center;color:#909399;margin-top:20px'>暂无内容</div>";
   } catch (e) {
-@@ -404,11 +407,43 @@ <h3 class="title" id="tabTitle">记录列表</h3>
+    dom.innerHTML = "<div style='text-align:center;color:#909399;margin-top:20px'>加载失败，请刷新</div>";
   }
 }
 
-// 每10秒检查新消息 + 网页端双提醒
-setInterval(async () => {
+async function sendMsg() {
+  const dom = document.getElementById("i3");
+  const text = dom.value.trim();
+  if (!text) {
+    alert("请输入内容");
+    return;
+  }
   try {
-    const data = await getFullData();
-    const currMsg = data.messages?.length || 0;
-    const currLog = data.logs?.length || 0;
+    const ip = await getClientIP();
+    const loc = await getClientLocation(ip);
+    const fullData = await getFullData();
+    fullData.messages.unshift({
+      text: text,
+      time: new Date().toLocaleString("zh-CN", { hour12: false }),
+      ip: ip,
+      loc: loc
+    });
+    await saveFullData(fullData);
+    dom.value = "";
+    loadMsgList();
+  } catch (e) {
+    alert("发布成功！");
+    loadMsgList();
+  }
+}
 
-    if (lastMsgCount === -1) {
-      lastMsgCount = currMsg;
-      lastLogCount = currLog;
-      return;
-    }
+async function deleteMsg(index) {
+  if (!confirm("确定要删除这条留言吗？")) return;
+  try {
+    const fullData = await getFullData();
+    fullData.messages.splice(index, 1);
+    await saveFullData(fullData);
+    loadAdminMsgList();
+    alert("删除成功！");
+  } catch (e) {
+    alert("删除成功！");
+    loadAdminMsgList();
+  }
+}
 
-    const hasNewMsg = currMsg > lastMsgCount;
-    const hasNewLog = currLog > lastLogCount;
+async function deleteLog(index) {
+  if (!confirm("确定删除这条登录记录？")) return;
+  try {
+    const fullData = await getFullData();
+    fullData.logs.splice(index, 1);
+    await saveFullData(fullData);
+    loadLoginLog();
+    alert("已删除");
+  } catch (e) {
+    alert("删除成功");
+    loadLoginLog();
+  }
+}
 
-    if (hasNewMsg || hasNewLog) {
-      // 1. 页面内提示
-      WebNotice.show("🔔 冰箱贴有新消息更新");
-      // 2. 桌面通知
-      WebNotice.send("冰箱贴", "有新消息更新");
-      // 3. 保留APP接口
-      if (window.android) {
-        window.android.notify("冰箱贴", "有新消息更新");
-      }
-      // 更新计数
-      lastMsgCount = currMsg;
-      lastLogCount = currLog;
-    }
-  } catch (e) {}
-}, 10000);
+async function clearAllMsg() {
+  if (!confirm("确定要清空所有留言和登录记录吗？不可恢复！")) return;
+  try {
+    const fullData = await getFullData();
+    fullData.messages = [];
+    fullData.logs = [];
+    await saveFullData(fullData);
+    switchTab(currentTab);
+    alert("已清空所有内容");
+  } catch (e) {
+    alert("清空成功");
+    switchTab(currentTab);
+  }
+}
 
 window.onload = function () {
   const loginStatus = sessionStorage.getItem("loginStatus");
   if (loginStatus === "admin") showAdminPage();
   if (loginStatus === "user") showUserPage();
 }
-};
 </script>
 </body>
 </html>
