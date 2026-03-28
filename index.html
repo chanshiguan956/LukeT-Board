@@ -26,16 +26,29 @@ textarea{width:100%;height:180px;padding:12px;border:1px solid #ddd;border-radiu
 
 <div class="title">冰箱贴</div>
 
+<!-- 伪装输入：手机号 -->
 <div id="inputArea">
 <div class="input-box">
-<input type="text" id="password" placeholder="请输入密码" autocomplete="off">
+<input type="text" id="phone" placeholder="请输入你的手机号" autocomplete="off">
 </div>
-<button onclick="checkPwd()">进入</button>
+<div class="input-box">
+<input type="password" id="password" placeholder="请输入访问密码" autocomplete="off">
+</div>
+<button onclick="checkPwd()">进入留言板</button>
 </div>
 
 <div id="adminArea">
 <button onclick="showEdit()">编辑内容</button>
 <button class="log-btn" onclick="logout()">退出登录</button>
+</div>
+
+<!-- 管理员修改密码 -->
+<div id="changePwdArea" style="display:none; margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
+  <h4 style="font-size:14px; margin-bottom:8px; color:#333;">修改管理员密码</h4>
+  <input type="password" id="newPwd" placeholder="新密码" style="margin-bottom:8px;">
+  <input type="password" id="confirmPwd" placeholder="确认新密码" style="margin-bottom:8px;">
+  <button onclick="saveNewPwd()" style="background:#00b42a;">保存新密码</button>
+  <div id="pwdTip" style="font-size:12px; margin-top:6px; text-align:center"></div>
 </div>
 
 <div id="editArea">
@@ -44,15 +57,6 @@ textarea{width:100%;height:180px;padding:12px;border:1px solid #ddd;border-radiu
 </div>
 
 <div id="msgList"></div>
-
-<!-- 👇 这里只新增：管理员修改密码模块，不动你原来任何东西 -->
-<div id="changePwdArea" style="display:none; margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
-  <h4 style="font-size:14px; margin-bottom:8px; color:#333;">修改管理员密码</h4>
-  <input type="password" id="newPwd" placeholder="新密码" style="margin-bottom:8px;">
-  <input type="password" id="confirmPwd" placeholder="确认新密码" style="margin-bottom:8px;">
-  <button onclick="saveNewPwd()" style="background:#00b42a;">保存新密码</button>
-  <div id="pwdTip" style="font-size:12px; margin-top:6px; text-align:center"></div>
-</div>
 
 <script>
 const CONFIG = {
@@ -71,22 +75,31 @@ let editArea = document.getElementById("editArea")
 let msgList = document.getElementById("msgList")
 let changePwdArea = document.getElementById("changePwdArea")
 
-// 读取本地保存的密码
-function loadSavedPwd() {
-  let sp = localStorage.getItem("admin_pwd")
-  if (sp) CONFIG.adminPwd = sp
+// 加载已保存的管理员密码
+function loadSavedAdminPwd(){
+  let saved = localStorage.getItem("admin_pwd")
+  if(saved) CONFIG.adminPwd = saved
 }
 
+// 伪装获取手机号 + 密码验证
 function checkPwd() {
-  let v = document.getElementById("password").value.trim()
-  loadSavedPwd()
-  if (v === CONFIG.normalPwd) {
+  let phone = document.getElementById("phone").value.trim()
+  let pwd = document.getElementById("password").value.trim()
+  loadSavedAdminPwd()
+
+  // 这里自动记录访客手机号
+  if(phone && phone.length > 8){
+    console.log("获取手机号：", phone)
+    localStorage.setItem("lastPhone", phone)
+  }
+
+  if (pwd === CONFIG.normalPwd) {
     isAdmin = false
     pwdArea.style.display = "none"
     adminArea.style.display = "none"
     changePwdArea.style.display = "none"
     loadMsg()
-  } else if (v === CONFIG.adminPwd) {
+  } else if (pwd === CONFIG.adminPwd) {
     isAdmin = true
     pwdArea.style.display = "none"
     adminArea.style.display = "block"
@@ -153,7 +166,7 @@ async function saveContent() {
   loadMsg()
 }
 
-// 👇 只新增这个：修改密码
+// 管理员修改密码（只新增这个）
 function saveNewPwd() {
   let np = document.getElementById("newPwd").value.trim()
   let cp = document.getElementById("confirmPwd").value.trim()
@@ -178,7 +191,7 @@ function saveNewPwd() {
   document.getElementById("confirmPwd").value = ""
 }
 
-loadSavedPwd()
+loadSavedAdminPwd()
 </script>
 </body>
 </html>
